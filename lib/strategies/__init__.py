@@ -1,1 +1,1 @@
-from .mean_revision_trend import meanRevisionTrend
+from .mean_revision_trend.mean_revision_trend import meanRevisionTrendWrapper
