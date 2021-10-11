@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 
 import numpy as np
-import pandas as pd
-from sqlalchemy import MetaData, create_engine, desc
+from pandas import DataFrame
+from sqlalchemy import MetaData, create_engine
 
 from lib import config as cfg
 from lib.enums import Trade, Symbol
+from lib.graphics import drawHistory
 from lib.strategies import meanRevisionTrendWrapper
 
 # the backtesting relies on the fact that the candles in the database
@@ -27,10 +28,10 @@ class Data:
         self.now = sd
         self.end = se
         
-        self.sqlengine = create_engine(cfg.SQLALCHEMY_SQLITE, echo=False)
-        self.metadata = MetaData(bind=self.sqlengine)
-        self.metadata.reflect(self.sqlengine)
-        self.conn = self.sqlengine.connect()
+        self.db = create_engine(cfg.SQLALCHEMY_SQLITE, echo=False)
+        self.metadata = MetaData(bind=self.db)
+        self.metadata.reflect(self.db)
+        self.conn = self.db.connect()
 
     def _getTable(self, symbol):
         return self.metadata.tables['candles' + symbol.name]
@@ -45,9 +46,10 @@ class Data:
             (table.c.opentime <= self._buffer_end[symbol])
         )
         candles = self.conn.execute(sql_select)
-        self._buffer_candles[symbol] = pd.DataFrame(dict(
-            zip(table.columns.keys(), zip(*candles))
-        ))
+        self._buffer_candles[symbol] = DataFrame(
+            dict(zip(table.columns.keys(), zip(*candles)))
+        )
+        # print(ncandles, len(self._buffer_candles[symbol]))
             
     # candle interval is always 1 minute, so calling getCandles with
     # ncandles=n results in n minutes of last candle data
@@ -62,6 +64,11 @@ class Data:
     def moveTime(self):
         self.now += self.dt
         for sym in Symbol: self._buffer_index[sym] += self._dm
+
+    def close(self):
+        self.conn.close()
+        self.db.dispose()
+        del self
     
 
 if __name__ == '__main__':
@@ -69,12 +76,14 @@ if __name__ == '__main__':
     symbol = Symbol.ADAUSDT
     strategy = meanRevisionTrendWrapper(symbol)
 
-    sd = datetime(2021, 1, 3) # starting time of the strategy backtest
-    se = datetime(2021, 1, 29) # ending time of the strategy backtest
+    sd = datetime(2021, 9, 7) # starting time of the strategy backtest
+    se = datetime(2021, 9, 24) # ending time of the strategy backtest
     dt = timedelta(minutes=1) # strategy is called after every dt from sd on
 
     data = Data(sd, se, dt)
     state = {'asset': {'ADA': 0, 'USDT': 100}, 'actions': []}
+
+    history = []
 
     while data.now < data.end:
         strategy(data, state)
@@ -86,10 +95,15 @@ if __name__ == '__main__':
             if pos == Trade.BUY:
                 asset[base] = asset[quote] / close * 0.999
                 asset[quote] = 0
+                history.append((data.now, Trade.BUY))
                 print(base, asset[base])
             elif pos == Trade.SELL:
                 asset[quote] = asset[base] * close * 0.999
                 asset[base] = 0
+                history.append((data.now, Trade.SELL))
                 print(quote, asset[quote])
         data.moveTime()
+
+    data.close()
+    drawHistory(history)
         

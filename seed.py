@@ -1,8 +1,6 @@
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 
-from matplotlib import pyplot as plt
-import talib
 from sqlalchemy import (
     MetaData, Table, Column,
     Integer, Float, String, DateTime,
