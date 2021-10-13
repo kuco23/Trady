@@ -6,3 +6,6 @@ class Trade(IntEnum):
 
 class Symbol(Enum):
     ADAUSDT = 'ADAUSDT'
+
+class CandleColumn(Enum):
+    pass

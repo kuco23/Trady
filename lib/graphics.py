@@ -12,12 +12,10 @@ metadata = MetaData(bind=engine)
 metadata.reflect(engine)
 conn = engine.connect()
 
-def drawHistory(history):
-    times = [h[0] for h in history]
-    s, t = min(times), max(times)
+def drawHistory(sd, se, history):
     table = metadata.tables['candles' + symbol.name]
     sql_select = table.select().where(
-        (s < table.c.opentime) & (table.c.opentime <= t)
+        (sd < table.c.opentime) & (table.c.opentime <= se)
     )
     candles = conn.execute(sql_select)
     df = DataFrame(dict(zip(table.columns.keys(), zip(*candles))))

@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-import numpy as np
 from pandas import DataFrame
 from sqlalchemy import MetaData, create_engine
 
@@ -50,10 +49,14 @@ class Data:
             dict(zip(table.columns.keys(), zip(*candles)))
         )
         # print(ncandles, len(self._buffer_candles[symbol]))
+
+    def moveTime(self):
+        self.now += self.dt
+        for sym in Symbol: self._buffer_index[sym] += self._dm
             
     # candle interval is always 1 minute, so calling getCandles with
     # ncandles=n results in n minutes of last candle data
-    def getCandles(self, symbol, ncandles):
+    def candles(self, symbol, ncandles):
         if (
             self.now - ncandles * self._minute < self._buffer_start[symbol] or
             self.now > self._buffer_end[symbol]
@@ -61,9 +64,8 @@ class Data:
         bi = self._buffer_index[symbol]
         return self._buffer_candles[symbol][bi - ncandles + 1:bi + 1]
 
-    def moveTime(self):
-        self.now += self.dt
-        for sym in Symbol: self._buffer_index[sym] += self._dm
+    def price(self, symbol):
+        return float(self.candles(symbol, 1).close)
 
     def close(self):
         self.conn.close()
@@ -76,8 +78,8 @@ if __name__ == '__main__':
     symbol = Symbol.ADAUSDT
     strategy = meanRevisionTrendWrapper(symbol)
 
-    sd = datetime(2021, 9, 7) # starting time of the strategy backtest
-    se = datetime(2021, 9, 24) # ending time of the strategy backtest
+    sd = datetime(2021, 9, 12) # starting time of the strategy backtest
+    se = datetime(2021, 10, 11) # ending time of the strategy backtest
     dt = timedelta(minutes=1) # strategy is called after every dt from sd on
 
     data = Data(sd, se, dt)
@@ -90,20 +92,20 @@ if __name__ == '__main__':
         while state['actions']:
             pos, sym = state['actions'].pop()
             base, quote = sym.name[:3], sym.name[3:]
-            close = float(data.getCandles(sym, 1).close)
+            price = data.price(sym)
             asset = state['asset']
             if pos == Trade.BUY:
-                asset[base] = asset[quote] / close * 0.999
+                asset[base] = asset[quote] / price * 0.999
                 asset[quote] = 0
                 history.append((data.now, Trade.BUY))
                 print(base, asset[base])
             elif pos == Trade.SELL:
-                asset[quote] = asset[base] * close * 0.999
+                asset[quote] = asset[base] * price * 0.999
                 asset[base] = 0
                 history.append((data.now, Trade.SELL))
                 print(quote, asset[quote])
         data.moveTime()
 
     data.close()
-    drawHistory(history)
+    drawHistory(sd, se, history)
         
