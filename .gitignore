@@ -132,3 +132,4 @@ config.ini
 
 # data
 data
+*.txt

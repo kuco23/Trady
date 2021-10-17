@@ -1,25 +1,33 @@
-from pandas import DataFrame
+from datetime import timedelta
+
+from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
 from sqlalchemy import create_engine, MetaData
 
 from . import config as cfg
 from .enums import Trade, Symbol
 
-symbol = Symbol.ADAUSDT
+symbol = Symbol.SHIBUSDT
 
-engine = create_engine(cfg.SQLALCHEMY_SQLITE, echo=False)
-metadata = MetaData(bind=engine)
-metadata.reflect(engine)
-conn = engine.connect()
+def getAx(title, xlab, ylab):
+    fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+    ax.set_title(title)
+    ax.set_xlabel(xlab)
+    ax.set_ylabel(ylab)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_alpha(0.5)
+    ax.spines['bottom'].set_alpha(0.5)
+    ax.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
+    return ax
 
-def drawHistory(sd, se, history):
-    table = metadata.tables['candles' + symbol.name]
-    sql_select = table.select().where(
-        (sd < table.c.opentime) & (table.c.opentime <= se)
-    )
-    candles = conn.execute(sql_select)
-    df = DataFrame(dict(zip(table.columns.keys(), zip(*candles))))
-
-    plt.plot(df.opentime, df.open)
+def drawHistory(data, history, sd, se):
+    candles = data._candlesByDate(symbol, sd, se)
+    buys = ((h[0], h[3]) for h in history if h[1] == Trade.BUY)
+    sells = ((h[0], h[3]) for h in history if h[1] == Trade.SELL)
+    ax = getAx('history', 'datetime', symbol.name)
+    ax.plot(candles.opentime, candles.open, zorder=0)
+    ax.scatter(*zip(*buys), color='green', zorder=1)
+    ax.scatter(*zip(*sells), color='red', zorder=1)
     plt.show()
     

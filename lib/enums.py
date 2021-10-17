@@ -5,7 +5,8 @@ class Trade(IntEnum):
     BUY = 1
 
 class Symbol(Enum):
-    ADAUSDT = 'ADAUSDT'
+    ADAUSDT = ('ADA', 'USDT')
+    SHIBUSDT = ('SHIB', 'USDT')
 
 class BinanceCandle(Enum):
     OPENTIME = 'opentime'

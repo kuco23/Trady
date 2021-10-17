@@ -18,7 +18,7 @@ month = yesterday.strftime('%b')
 argparser = ArgumentParser()
 argparser.add_argument(
     'sym', type=str, metavar='symbol',
-    choices=[symbol.name for symbol in Symbol]
+    choices=list(Symbol.__members__.keys())
 )
 argparser.add_argument(
     '-sd', type=str, metavar='start date',

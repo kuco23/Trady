@@ -36,23 +36,22 @@ class Data:
     def _getTable(self, symbol):
         return self.metadata.tables['candles' + symbol.name]
 
+    def _candlesByDate(self, symbol, sd, ed):
+        table = self._getTable(symbol)
+        sql_select = table.select().where(
+            (sd < table.c.opentime) & (table.c.opentime <= se)
+        )
+        candles = self.conn.execute(sql_select)
+        colnames = table.columns.keys()
+        return DataFrame(dict(zip(colnames, zip(*candles))))
+
     def _getBufferCandles(self, symbol, ncandles):
         self._buffer_index[symbol] = ncandles - 1
         self._buffer_start[symbol] = self.now - ncandles * self._minute
         self._buffer_end[symbol] = self.now + self._bufflen * self._minute
-        table = self._getTable(symbol)
-        sql_select = table.select().where(
-            (self._buffer_start[symbol] < table.c.opentime) &
-            (table.c.opentime <= self._buffer_end[symbol])
+        self._buffer_candles[symbol] = self._candlesByDate(
+            symbol, self._buffer_start[symbol], self._buffer_end[symbol]
         )
-        candles = self.conn.execute(sql_select)
-        self._buffer_candles[symbol] = DataFrame(
-            dict(zip(table.columns.keys(), zip(*candles)))
-        )
-
-    def moveTime(self):
-        self.now += self.dt
-        for sym in Symbol: self._buffer_index[sym] += self._dm
             
     # candle interval is always 1 minute, so calling getCandles with
     # ncandles=n results in n minutes of last candle data
@@ -67,6 +66,10 @@ class Data:
     def price(self, symbol):
         return float(self.candles(symbol, 1).close)
 
+    def moveTime(self):
+        self.now += self.dt
+        for sym in Symbol: self._buffer_index[sym] += self._dm
+
     def close(self):
         self.conn.close()
         self.db.dispose()
@@ -76,51 +79,50 @@ class Data:
 if __name__ == '__main__':
 
     argparser = ArgumentParser()
-    argparser.add_argument('strategy', type=str, metavar='strategy')
-    argparser.add_argument(
-        '-sym', type=str, metavar='symbol',
-        choices=[sym.name for sym in Symbol]
+    argparser.add_argument('strategy', metavar='strategy')
+    argparser.add_argument('-sym', metavar='symbol',
+        choices=list(Symbol.__members__.keys())
     )
-    argparser.add_argument('-sd', type=str, metavar='start date')
-    argparser.add_argument('-ed', type=str, metavar='end date')
-    argparser.add_argument(
-        '-si', type=int, default=1,
+    argparser.add_argument('-sd', metavar='start date')
+    argparser.add_argument('-ed', metavar='end date')
+    argparser.add_argument('-si', type=int, default=1,
         metavar='strategy time interval in minutes'
     )
     args = argparser.parse_args()
 
-    symbol = None
-    for sym in Symbol:
-        if sym.name == args.sym: symbol = sym
+    symbol = Symbol.__members__.get(args.sym)
     strategy = eval(args.strategy + 'Wrapper')(symbol)
-
+    
     sd = datetime(*map(int, args.sd.split()))
     se = datetime(*map(int, args.ed.split()))
     dt = timedelta(minutes=args.si)
                   
     data = Data(sd, se, dt)
-    state = {'assets': {'ADA': 0, 'USDT': 100}, 'actions': []}
+    state = {
+        'assets': {'USDT': 100, **{sym.value[0]: 0 for sym in Symbol}},
+        'actions': []
+    }
     history = []
 
     while data.now < data.end:
         strategy(data, state)
         while state['actions']:
             pos, sym, quant = state['actions'].pop()
-            base, quote = sym.name[:3], sym.name[3:]
+            base, quote = sym.value
             price = data.price(sym)
             assets = state['assets']
             if pos == Trade.BUY:
                 assets[base] = quant / price * 0.999
                 assets[quote] -= quant
-                history.append((data.now, Trade.BUY, quant))
+                history.append((data.now, Trade.BUY, quant, price))
             elif pos == Trade.SELL:
                 assets[quote] = quant * price * 0.999
                 assets[base] -= quant
-                history.append((data.now, Trade.SELL, quant))
+                history.append((data.now, Trade.SELL, quant, price))
             print(base, assets[base])
             print(quote, assets[quote])
         data.moveTime()
 
+    drawHistory(data, history, sd, se)
     data.close()
-    drawHistory(sd, se, history)
         
