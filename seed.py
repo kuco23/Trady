@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import (
     MetaData, Table, Column,
@@ -12,16 +12,22 @@ from binance.enums import KLINE_INTERVAL_1MINUTE
 from lib import config as cfg
 from lib.enums import Symbol
 
-# todo: the date when trading on Binance began for a given symbol
-sd_default = '1 Jan, 2017'
+yesterday = date.today() - timedelta(days=1)
+month = yesterday.strftime('%b')
 
 argparser = ArgumentParser()
 argparser.add_argument(
     'sym', type=str, metavar='symbol',
     choices=[symbol.name for symbol in Symbol]
 )
-argparser.add_argument('-sd', type=str, metavar='start date')
-argparser.add_argument('-ed', type=str, metavar='end date')
+argparser.add_argument(
+    '-sd', type=str, metavar='start date',
+    default='1 jan, 2017' # soon enough
+)
+argparser.add_argument(
+    '-ed', type=str, metavar='end date',
+    default=f'{yesterday.day} {month}, {yesterday.year}'
+)
 argparser.add_argument('-eo', type=str, metavar='sql echo')
 args = argparser.parse_args()
 
@@ -47,8 +53,7 @@ conn.execute(candle_table.delete()) # empty table
 
 client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
 candlegen = client.get_historical_klines_generator(
-    args.sym, KLINE_INTERVAL_1MINUTE,
-    args.sd or sd_default, args.ed
+    args.sym, KLINE_INTERVAL_1MINUTE, args.sd, args.ed
 )
 
 minute = timedelta(minutes=1)

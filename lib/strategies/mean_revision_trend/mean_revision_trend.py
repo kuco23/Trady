@@ -14,9 +14,13 @@ def meanRevisionTrendWrapper(symbol):
         ema1d = float(EMA(candles1d.close).tail(1))
         rsi = float(RSI(candles1h.close).tail(1))
 
-        if ema1h > ema1d and rsi < 20 and state['asset'][quote] > 0:
-            state['actions'].append((Trade.BUY, symbol))
-        elif ema1h < ema1d and rsi > 40 and state['asset'][base] > 0:
-            state['actions'].append((Trade.SELL, symbol))
+        if ema1h > ema1d and rsi < 20 and state['assets'][quote] > 0:
+            state['actions'].append(
+                (Trade.BUY, symbol, state['assets'][quote])
+            )
+        elif ema1h < ema1d and rsi > 40 and state['assets'][base] > 0:
+            state['actions'].append(
+                (Trade.SELL, symbol, state['assets'][base])
+            )
 
     return meanRevisionTrend

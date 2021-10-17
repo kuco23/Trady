@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 from datetime import datetime, timedelta
 
 from pandas import DataFrame
@@ -6,10 +7,10 @@ from sqlalchemy import MetaData, create_engine
 from lib import config as cfg
 from lib.enums import Trade, Symbol
 from lib.graphics import drawHistory
-from lib.strategies import meanRevisionTrendWrapper
+from lib.strategies import *
 
 # the backtesting relies on the fact that the candles in the database
-# are ordered by descendingly by date and spaced exactly 1 minute apart
+# are ordered descendingly by date and spaced exactly 1 minute apart
 
 # Data methods will always return pandas table (to comply with talib)
 class Data:
@@ -48,7 +49,6 @@ class Data:
         self._buffer_candles[symbol] = DataFrame(
             dict(zip(table.columns.keys(), zip(*candles)))
         )
-        # print(ncandles, len(self._buffer_candles[symbol]))
 
     def moveTime(self):
         self.now += self.dt
@@ -75,35 +75,50 @@ class Data:
 
 if __name__ == '__main__':
 
-    symbol = Symbol.ADAUSDT
-    strategy = meanRevisionTrendWrapper(symbol)
+    argparser = ArgumentParser()
+    argparser.add_argument('strategy', type=str, metavar='strategy')
+    argparser.add_argument(
+        '-sym', type=str, metavar='symbol',
+        choices=[sym.name for sym in Symbol]
+    )
+    argparser.add_argument('-sd', type=str, metavar='start date')
+    argparser.add_argument('-ed', type=str, metavar='end date')
+    argparser.add_argument(
+        '-si', type=int, default=1,
+        metavar='strategy time interval in minutes'
+    )
+    args = argparser.parse_args()
 
-    sd = datetime(2021, 9, 12) # starting time of the strategy backtest
-    se = datetime(2021, 10, 11) # ending time of the strategy backtest
-    dt = timedelta(minutes=1) # strategy is called after every dt from sd on
+    symbol = None
+    for sym in Symbol:
+        if sym.name == args.sym: symbol = sym
+    strategy = eval(args.strategy + 'Wrapper')(symbol)
 
+    sd = datetime(*map(int, args.sd.split()))
+    se = datetime(*map(int, args.ed.split()))
+    dt = timedelta(minutes=args.si)
+                  
     data = Data(sd, se, dt)
-    state = {'asset': {'ADA': 0, 'USDT': 100}, 'actions': []}
-
+    state = {'assets': {'ADA': 0, 'USDT': 100}, 'actions': []}
     history = []
 
     while data.now < data.end:
         strategy(data, state)
         while state['actions']:
-            pos, sym = state['actions'].pop()
+            pos, sym, quant = state['actions'].pop()
             base, quote = sym.name[:3], sym.name[3:]
             price = data.price(sym)
-            asset = state['asset']
+            assets = state['assets']
             if pos == Trade.BUY:
-                asset[base] = asset[quote] / price * 0.999
-                asset[quote] = 0
-                history.append((data.now, Trade.BUY))
-                print(base, asset[base])
+                assets[base] = quant / price * 0.999
+                assets[quote] -= quant
+                history.append((data.now, Trade.BUY, quant))
             elif pos == Trade.SELL:
-                asset[quote] = asset[base] * price * 0.999
-                asset[base] = 0
-                history.append((data.now, Trade.SELL))
-                print(quote, asset[quote])
+                assets[quote] = quant * price * 0.999
+                assets[base] -= quant
+                history.append((data.now, Trade.SELL, quant))
+            print(base, assets[base])
+            print(quote, assets[quote])
         data.moveTime()
 
     data.close()

@@ -7,5 +7,16 @@ class Trade(IntEnum):
 class Symbol(Enum):
     ADAUSDT = 'ADAUSDT'
 
-class CandleColumn(Enum):
-    pass
+class BinanceCandle(Enum):
+    OPENTIME = 'opentime'
+    OPEN = 'open'
+    HIGH = 'high'
+    LOW = 'low'
+    CLOSE = 'close'
+    VOLUME = 'volume'
+    CLOSETIME = 'closetime'
+    QUOTE = 'quote'
+    TRADES = 'trades'
+    TAKER_BASE_VOLUME = 'taker_basevol'
+    TAKER_QUOTE_VOLUME = 'taker_quotevol'
+    IGNORE = 'ignore'
