@@ -7,6 +7,9 @@ class Trade(IntEnum):
 class Symbol(Enum):
     ADAUSDT = ('ADA', 'USDT')
     SHIBUSDT = ('SHIB', 'USDT')
+    ICPUSDT = ('ICP', 'USDT')
+    CVCUSDT = ('CVC', 'USDT')
+    BNBUSDT = ('BNB', 'USDT')
 
 class BinanceCandle(Enum):
     OPENTIME = 'opentime'

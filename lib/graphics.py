@@ -7,7 +7,6 @@ from sqlalchemy import create_engine, MetaData
 from . import config as cfg
 from .enums import Trade, Symbol
 
-symbol = Symbol.SHIBUSDT
 
 def getAx(title, xlab, ylab):
     fig, ax = plt.subplots(1, 1, figsize=(15, 8))
@@ -22,9 +21,10 @@ def getAx(title, xlab, ylab):
     return ax
 
 def drawHistory(data, history, sd, se):
+    symbol = history[0].symbol
     candles = data._candlesByDate(symbol, sd, se)
-    buys = ((h[0], h[3]) for h in history if h[1] == Trade.BUY)
-    sells = ((h[0], h[3]) for h in history if h[1] == Trade.SELL)
+    buys = ((r.time, r.price) for r in history if r.trade == Trade.BUY)
+    sells = ((r.time, r.price) for r in history if r.trade == Trade.SELL)
     ax = getAx('history', 'datetime', symbol.name)
     ax.plot(candles.opentime, candles.open, zorder=0)
     ax.scatter(*zip(*buys), color='green', zorder=1)

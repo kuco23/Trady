@@ -6,15 +6,16 @@ from sqlalchemy import MetaData, create_engine
 
 from lib import config as cfg
 from lib.enums import Trade, Symbol
+from lib.models import AbstractData, Record
 from lib.graphics import drawHistory
+from lib.exceptions import InvalidPosition
 from lib.strategies import *
 
 # the backtesting relies on the fact that the candles in the database
 # are ordered descendingly by date and spaced exactly 1 minute apart
 
 # Data methods will always return pandas table (to comply with talib)
-class Data:
-    _minute = timedelta(minutes=1)
+class Data(AbstractData):
     _bufflen = 10000 # length of the buffer candles
 
     def __init__(self, sd, se, dt):
@@ -78,16 +79,16 @@ class Data:
 
 if __name__ == '__main__':
 
+    fee = 0.001 # binance max fee
+    
     argparser = ArgumentParser()
     argparser.add_argument('strategy', metavar='strategy')
     argparser.add_argument('-sym', metavar='symbol',
-        choices=list(Symbol.__members__.keys())
-    )
+        choices=list(Symbol.__members__.keys()))
     argparser.add_argument('-sd', metavar='start date')
     argparser.add_argument('-ed', metavar='end date')
     argparser.add_argument('-si', type=int, default=1,
-        metavar='strategy time interval in minutes'
-    )
+        metavar='strategy time interval in minutes')
     args = argparser.parse_args()
 
     symbol = Symbol.__members__.get(args.sym)
@@ -107,20 +108,26 @@ if __name__ == '__main__':
     while data.now < data.end:
         strategy(data, state)
         while state['actions']:
-            pos, sym, quant = state['actions'].pop()
-            base, quote = sym.value
-            price = data.price(sym)
+            action = state['actions'].pop()
+            base, quote = action.symbol.value
+            price = data.price(action.symbol)
+            
             assets = state['assets']
-            if pos == Trade.BUY:
-                assets[base] = quant / price * 0.999
-                assets[quote] -= quant
-                history.append((data.now, Trade.BUY, quant, price))
-            elif pos == Trade.SELL:
-                assets[quote] = quant * price * 0.999
-                assets[base] -= quant
-                history.append((data.now, Trade.SELL, quant, price))
+            if action.trade == Trade.BUY:
+                assets[base] = action.quantity / price * (1 - fee)
+                assets[quote] -= action.quantity
+            elif action.trade == Trade.SELL:
+                assets[quote] = action.quantity * price * (1 - fee)
+                assets[base] -= action.quantity
+            else: raise InvalidPosition(action.trade)
+            
+            history.append(Record(
+                data.now, action.trade, action.symbol,
+                action.quantity, price
+            ))
             print(base, assets[base])
             print(quote, assets[quote])
+            
         data.moveTime()
 
     drawHistory(data, history, sd, se)

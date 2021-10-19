@@ -7,12 +7,12 @@ from binance.enums import *
 
 from lib import config as cfg
 from lib.enums import Trade, Symbol, BinanceCandle
+from lib.models import AbstractData, Record
 from lib.exceptions import OrderFillTimeout, InvalidPosition
 from lib.strategies import meanRevisionTrendWrapper
 
 
-class Data:
-    _minute = timedelta(minutes=1)
+class Data(AbstractData):
     _candleattr = [e.name for e in BinanceCandle]
     
     def __init__(self, client):
@@ -51,31 +51,42 @@ if __name__ == '__main__':
     while True:
         strategy(data, state)
         while state['actions']:
-            pos, sym, quant = state['actions'].pop()
-            base, quote = sym.value
-            price = data.price(sym)
+            action = state['actions'].pop()
+            base, quote = action.symbol.value
+            price = data.price(action.symbol)
 
-            now = datetime.now()
             assets = state['assets']
             order_filled = False
-            if pos == Trade.BUY:
-                resp = client.order_market_buy(symbol=sym, quantity=quant)
+            if action.trade == Trade.BUY:
+                resp = client.order_market_buy(
+                    symbol=action.symbol,
+                    quantity=action.quantity
+                )
                 order_filled = resp['status'] == 'FILLED'
                 order_id = resp['id']
-                history.append((now, Trade.BUY, quant, price))
-            elif pos == Trade.SELL:
-                resp = client.order_market_sell(symbol=sym, quantity=quant)
+            elif action.trade == Trade.SELL:
+                resp = client.order_market_sell(
+                    symbol=action.symbol,
+                    quantity=action.quantity
+                )
                 order_filled = resp['status'] == 'FILLED'
                 order_id = resp['id']
-                history.append((now, Trade.SELL, quant, price))
-            else: raise InvalidPosition(pos)
+            else: raise InvalidPosition(action.trade)
+
+            history.append(Record(
+                datetime.now(), action.trade,
+                action.symbol, action.quantity, price
+            ))
                
             slept = 0
             while not order_filled:
                 sleep(2)
                 slept += 2
                 if mt > dt: raise OrderFillTimeout()
-                order = client.get_order(symbol=sym, orderId=order_id)
+                order = client.get_order(
+                    symbol=action.symbol,
+                    orderId=order_id
+                )
                 order_filled = order['status'] == 'FILLED'
 
             state['assets'] = getAssets(client)
