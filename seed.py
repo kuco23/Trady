@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import (
@@ -11,32 +10,26 @@ from binance.enums import KLINE_INTERVAL_1MINUTE
 
 from lib import config as cfg
 from lib.enums import Symbol
+from lib.cli import Argparser
 
 yesterday = date.today() - timedelta(days=1)
 month = yesterday.strftime('%b')
 
-argparser = ArgumentParser()
-argparser.add_argument(
-    'sym', type=str, metavar='symbol',
-    choices=list(Symbol.__members__.keys())
-)
-argparser.add_argument(
-    '-sd', type=str, metavar='start date',
-    default='1 jan, 2017' # soon enough
-)
-argparser.add_argument(
-    '-ed', type=str, metavar='end date',
-    default=f'{yesterday.day} {month}, {yesterday.year}'
-)
-argparser.add_argument('-eo', type=str, metavar='sql echo')
+def toBinanceDateFormat(date):
+    month = date.strftime('%b')
+    return f'{date.day} {month}, {date.year}'
+
+argparser = Argparser()
+argparser.add_argument_symbol()
+argparser.add_argument_start_date()
+argparser.add_argument_end_date()
 args = argparser.parse_args()
 
-echo = args.eo is not None
-engine = create_engine(cfg.SQLALCHEMY_SQLITE, echo=echo)
+engine = create_engine(cfg.SQLALCHEMY_SQLITE, echo=False)
 meta = MetaData()
 
 candle_table = Table(
-    'candles' + args.sym, meta,
+    'candles' + args.symbol.name, meta,
     Column('id', Integer, primary_key=True),
     Column('opentime', DateTime),
     Column('open', Float),
@@ -53,7 +46,9 @@ conn.execute(candle_table.delete()) # empty table
 
 client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
 candlegen = client.get_historical_klines_generator(
-    args.sym, KLINE_INTERVAL_1MINUTE, args.sd, args.ed
+    args.symbol.name, KLINE_INTERVAL_1MINUTE,
+    toBinanceDateFormat(args.sd),
+    toBinanceDateFormat(args.ed)
 )
 
 minute = timedelta(minutes=1)

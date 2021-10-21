@@ -8,8 +8,9 @@ from binance.enums import *
 from lib import config as cfg
 from lib.enums import Trade, Symbol, BinanceCandle
 from lib.models import AbstractData, Record
+from lib.cli import Argparser
 from lib.exceptions import OrderFillTimeout, InvalidPosition
-from lib.strategies import meanRevisionTrendWrapper
+from lib.strategies import *
 
 
 class Data(AbstractData):
@@ -38,9 +39,10 @@ def getAssets(client):
 
 if __name__ == '__main__':
 
-    symbol = Symbol.ADAUSDT
-    strategy = meanRevisionTrendWrapper(symbol)
-    dt = timedelta(minutes=1)
+    argparser = Argparser()
+    argparser.add_argument_strategy()
+    argparser.add_argument_time_interval()
+    args = argparser.parse_args()
 
     client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
 
@@ -49,7 +51,7 @@ if __name__ == '__main__':
     history = []
 
     while True:
-        strategy(data, state)
+        args.strategy(data, state)
         while state['actions']:
             action = state['actions'].pop()
             base, quote = action.symbol.value
@@ -82,7 +84,7 @@ if __name__ == '__main__':
             while not order_filled:
                 sleep(2)
                 slept += 2
-                if mt > dt: raise OrderFillTimeout()
+                if mt > args.si: raise OrderFillTimeout()
                 order = client.get_order(
                     symbol=action.symbol,
                     orderId=order_id
@@ -92,5 +94,5 @@ if __name__ == '__main__':
             state['assets'] = getAssets(client)
             print(base, state['assets'][base])
             print(quote, state['assets'][quote])
-            sleep(dt.seconds - slept)
+            sleep(args.si.seconds - slept)
             

@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 from datetime import datetime, timedelta
 
 from pandas import DataFrame
@@ -8,8 +7,8 @@ from lib import config as cfg
 from lib.enums import Trade, Symbol
 from lib.models import AbstractData, Record
 from lib.graphics import drawHistory
+from lib.cli import Argparser
 from lib.exceptions import InvalidPosition
-from lib.strategies import *
 
 # the backtesting relies on the fact that the candles in the database
 # are ordered descendingly by date and spaced exactly 1 minute apart
@@ -40,7 +39,7 @@ class Data(AbstractData):
     def _candlesByDate(self, symbol, sd, ed):
         table = self._getTable(symbol)
         sql_select = table.select().where(
-            (sd < table.c.opentime) & (table.c.opentime <= se)
+            (sd < table.c.opentime) & (table.c.opentime <= ed)
         )
         candles = self.conn.execute(sql_select)
         colnames = table.columns.keys()
@@ -75,30 +74,20 @@ class Data(AbstractData):
         self.conn.close()
         self.db.dispose()
         del self
-    
+
 
 if __name__ == '__main__':
 
     fee = 0.001 # binance max fee
-    
-    argparser = ArgumentParser()
-    argparser.add_argument('strategy', metavar='strategy')
-    argparser.add_argument('-sym', metavar='symbol',
-        choices=list(Symbol.__members__.keys()))
-    argparser.add_argument('-sd', metavar='start date')
-    argparser.add_argument('-ed', metavar='end date')
-    argparser.add_argument('-si', type=int, default=1,
-        metavar='strategy time interval in minutes')
-    args = argparser.parse_args()
 
-    symbol = Symbol.__members__.get(args.sym)
-    strategy = eval(args.strategy + 'Wrapper')(symbol)
-    
-    sd = datetime(*map(int, args.sd.split()))
-    se = datetime(*map(int, args.ed.split()))
-    dt = timedelta(minutes=args.si)
+    argparser = Argparser()
+    argparser.add_argument_strategy()
+    argparser.add_argument_start_date()
+    argparser.add_argument_end_date()
+    argparser.add_argument_time_interval()
+    args = argparser.parse_args()
                   
-    data = Data(sd, se, dt)
+    data = Data(args.sd, args.ed, args.si)
     state = {
         'assets': {'USDT': 100, **{sym.value[0]: 0 for sym in Symbol}},
         'actions': []
@@ -106,7 +95,7 @@ if __name__ == '__main__':
     history = []
 
     while data.now < data.end:
-        strategy(data, state)
+        args.strategy(data, state)
         while state['actions']:
             action = state['actions'].pop()
             base, quote = action.symbol.value
@@ -130,6 +119,6 @@ if __name__ == '__main__':
             
         data.moveTime()
 
-    drawHistory(data, history, sd, se)
+    drawHistory(data, history, args.sd, args.ed)
     data.close()
         
