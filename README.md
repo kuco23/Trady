@@ -17,7 +17,7 @@ Repo implements two ways to test a given strategy.
 - **Livetesting**: For strategies that also depend on some outside factors (eg. scraping the web for crypto news). Livetest by running `python <strategy> <symbol>` (comming soon).
 
 ### Seeding
-When backtesting, it is required to have candles saved in the database. You can load them by running eg. `python seed.py <symbol> -sd <start date> -ed <end date>`, where `-ed` is optional, defaulting on "yesterday". 
+When backtesting, it is required to have candles saved in the database. You can load them by running `python seed.py <symbol> -sd <start date> -ed <end date>`, where `-ed` is optional, defaulting on the current day's midnight. 
 
 ### Notes
 
@@ -25,6 +25,7 @@ When backtesting a strategy make sure that it does not acquire earlier candles t
 
 ### Examples
 
-`python seed.py ADAUSDT -sd 2021 9 28 -ed 2021 10 1`
-
-`python backtest.py meanRevision ADAUSDT -sd 2021 11 28 -ed 2021 10 1`
+```powershell
+python seed.py ADAUSDT -sd 2021 9 28 -ed 2021 10 10
+python backtest.py meanRevision ADAUSDT -sd 2021 11 1 -ed 2021 10 10
+```

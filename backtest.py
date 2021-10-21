@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from tqdm import tqdm
 from pandas import DataFrame
 from sqlalchemy import MetaData, create_engine
 
@@ -94,6 +95,7 @@ if __name__ == '__main__':
     }
     history = []
 
+    progressbar = tqdm(total=(args.ed - args.sd) // args.si)
     while data.now < data.end:
         args.strategy(data, state)
         while state['actions']:
@@ -114,9 +116,8 @@ if __name__ == '__main__':
                 data.now, action.trade, action.symbol,
                 action.quantity, price
             ))
-            print(base, assets[base])
-            print(quote, assets[quote])
-            
+
+        progressbar.update(1)
         data.moveTime()
 
     drawHistory(data, history, args.sd, args.ed)

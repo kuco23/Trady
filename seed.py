@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 
+from tqdm import tqdm
 from sqlalchemy import (
     MetaData, Table, Column,
     Integer, Float, String, DateTime,
@@ -12,8 +13,6 @@ from lib import config as cfg
 from lib.enums import Symbol
 from lib.cli import Argparser
 
-yesterday = date.today() - timedelta(days=1)
-month = yesterday.strftime('%b')
 
 def toBinanceDateFormat(date):
     month = date.strftime('%b')
@@ -51,10 +50,10 @@ candlegen = client.get_historical_klines_generator(
     toBinanceDateFormat(args.ed)
 )
 
-minute = timedelta(minutes=1)
 top, tcp = None, None
+minute = timedelta(minutes=1)
+progressbar = tqdm(total=(args.ed - args.sd) // minute)
 for i, candle in enumerate(candlegen):
-    
     to = datetime.fromtimestamp(candle[0] / 1000)
     tc = datetime.fromtimestamp(candle[6] / 1000)
     sql_insert = candle_table.insert().values(
@@ -78,8 +77,8 @@ for i, candle in enumerate(candlegen):
             conn.execute(sql_insert.values(
                 opentime=_to, closetime=_tc
             ))
+            progressbar.update(1)
 
     conn.execute(sql_insert)
     top, tcp = to, tc
-    
-    if i % 100 == 0: print(i)
+    progressbar.update(1)

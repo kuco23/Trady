@@ -30,8 +30,10 @@ class Argparser(argparse.ArgumentParser):
 
     class _SetEndDateAction(argparse.Action):
         def __call__(self, parser, namespace, values, ops=None):
-            yesterday = datetime.now() - timedelta(days=1)
-            ed = datetime(*values) if values else yesterday
+            midnight = datetime.now().replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            ed = datetime(*values) if values else midnight
             setattr(namespace, self.dest, ed)
 
     class _SetTimeIntervalAction(argparse.Action):
