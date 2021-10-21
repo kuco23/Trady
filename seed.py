@@ -1,3 +1,4 @@
+from json import loads, dumps
 from datetime import date, datetime, timedelta
 
 from tqdm import tqdm
@@ -24,8 +25,8 @@ argparser.add_argument_start_date()
 argparser.add_argument_end_date()
 args = argparser.parse_args()
 
-engine = create_engine(cfg.SQLALCHEMY_SQLITE, echo=False)
 meta = MetaData()
+engine = create_engine(cfg.SQLALCHEMY_SQLITE)
 
 candle_table = Table(
     'candles' + args.symbol.name, meta,
@@ -54,6 +55,7 @@ top, tcp = None, None
 minute = timedelta(minutes=1)
 progressbar = tqdm(total=(args.ed - args.sd) // minute)
 for i, candle in enumerate(candlegen):
+    
     to = datetime.fromtimestamp(candle[0] / 1000)
     tc = datetime.fromtimestamp(candle[6] / 1000)
     sql_insert = candle_table.insert().values(
@@ -70,7 +72,6 @@ for i, candle in enumerate(candlegen):
     if i > 0:
         dto = to - top
         _to, _tc = top, tcp
-        if dto // minute > 1: print(dto // minute)
         for _ in range(dto // minute - 1):
             _to += minute
             _tc += minute
@@ -82,3 +83,11 @@ for i, candle in enumerate(candlegen):
     conn.execute(sql_insert)
     top, tcp = to, tc
     progressbar.update(1)
+
+# save the database candle date interval
+metalog = loads(cfg.DATA_PATH_META)
+metalog[args.symbol.name] = {
+    'sd': args.sd.timestamp(),
+    'ed': args.ed.timestamp()
+}
+dumps(metalog, cfg.DATA_PATH_META)
