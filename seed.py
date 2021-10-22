@@ -85,9 +85,11 @@ for i, candle in enumerate(candlegen):
 # log timeframe in which the candles 
 # are available for symbol
 path = Path(cfg.DATA_PATH_META)
-isfile = path.is_file()
-with open(path, 'w+' if isfile else 'a+') as file:
-    metalog = load(file) if isfile else {}
+if path.is_file():
+    with open(path, 'r') as file:
+        metalog = load(file)
+else: metalog = dict()
+with open(path, 'w') as file:
     metalog[args.symbol.name] = {
         'sd': args.sd.timestamp(),
         'ed': args.ed.timestamp()
