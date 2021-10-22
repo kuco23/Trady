@@ -1,11 +1,6 @@
-from datetime import timedelta
-
-from pandas import DataFrame, Series
 from matplotlib import pyplot as plt
-from sqlalchemy import create_engine, MetaData
 
-from . import config as cfg
-from .enums import Trade, Symbol
+from .enums import Trade
 
 
 def getAx(title, xlab, ylab):

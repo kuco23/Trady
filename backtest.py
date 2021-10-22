@@ -1,15 +1,13 @@
-from datetime import datetime, timedelta
-
-from tqdm import tqdm
 from pandas import DataFrame
 from sqlalchemy import MetaData, create_engine
+from tqdm import tqdm
 
 from lib import config as cfg
-from lib.enums import Trade, Symbol
-from lib.models import AbstractData, Record
-from lib.graphics import drawHistory
 from lib.cli import Argparser
+from lib.enums import Symbol, Trade
 from lib.exceptions import InvalidPosition
+from lib.graphics import drawHistory
+from lib.models import AbstractData, Record
 
 # the backtesting relies on the fact that the candles in the database
 # are ordered descendingly by date and spaced exactly 1 minute apart
@@ -95,7 +93,8 @@ if __name__ == '__main__':
     }
     history = []
 
-    progressbar = tqdm(total=(args.ed - args.sd) // args.si)
+    iterations = (args.ed - args.sd) // args.si
+    progressbar = tqdm(total=iterations)
     while data.now < data.end:
         args.strategy(data, state)
         while state['actions']:

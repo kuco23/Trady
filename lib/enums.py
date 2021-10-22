@@ -10,6 +10,7 @@ class Symbol(Enum):
     ICPUSDT = ('ICP', 'USDT')
     CVCUSDT = ('CVC', 'USDT')
     BNBUSDT = ('BNB', 'USDT')
+    SOLUSDT = ('SOL', 'USDT')
 
 class BinanceCandle(Enum):
     OPENTIME = 'opentime'

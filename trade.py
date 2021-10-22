@@ -1,15 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import sleep
 
-from pandas import DataFrame
 from binance.client import Client
 from binance.enums import *
+from pandas import DataFrame
 
 from lib import config as cfg
-from lib.enums import Trade, Symbol, BinanceCandle
-from lib.models import AbstractData, Record
 from lib.cli import Argparser
-from lib.exceptions import OrderFillTimeout, InvalidPosition
+from lib.enums import BinanceCandle, Trade
+from lib.exceptions import InvalidPosition, OrderFillTimeout
+from lib.models import AbstractData, Record
 from lib.strategies import *
 
 

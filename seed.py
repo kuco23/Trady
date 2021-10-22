@@ -1,21 +1,18 @@
-from json import loads, dumps
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
+from json import dump, load
+from pathlib import Path
 
-from tqdm import tqdm
-from sqlalchemy import (
-    MetaData, Table, Column,
-    Integer, Float, String, DateTime,
-    create_engine
-)
 from binance import Client
 from binance.enums import KLINE_INTERVAL_1MINUTE
+from sqlalchemy import (Column, DateTime, Float, Integer, MetaData, Table,
+                        create_engine)
+from tqdm import tqdm
 
 from lib import config as cfg
-from lib.enums import Symbol
 from lib.cli import Argparser
 
 
-def toBinanceDateFormat(date):
+def binanceDateFormat(date):
     month = date.strftime('%b')
     return f'{date.day} {month}, {date.year}'
 
@@ -47,13 +44,14 @@ conn.execute(candle_table.delete()) # empty table
 client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
 candlegen = client.get_historical_klines_generator(
     args.symbol.name, KLINE_INTERVAL_1MINUTE,
-    toBinanceDateFormat(args.sd),
-    toBinanceDateFormat(args.ed)
+    binanceDateFormat(args.sd),
+    binanceDateFormat(args.ed)
 )
 
 top, tcp = None, None
 minute = timedelta(minutes=1)
-progressbar = tqdm(total=(args.ed - args.sd) // minute)
+iterations = (args.ed - args.sd) // minute
+progressbar = tqdm(total=iterations)
 for i, candle in enumerate(candlegen):
     
     to = datetime.fromtimestamp(candle[0] / 1000)
@@ -84,10 +82,14 @@ for i, candle in enumerate(candlegen):
     top, tcp = to, tc
     progressbar.update(1)
 
-# save the database candle date interval
-metalog = loads(cfg.DATA_PATH_META)
-metalog[args.symbol.name] = {
-    'sd': args.sd.timestamp(),
-    'ed': args.ed.timestamp()
-}
-dumps(metalog, cfg.DATA_PATH_META)
+# log timeframe in which the candles 
+# are available for symbol
+path = Path(cfg.DATA_PATH_META)
+isfile = path.is_file()
+with open(path, 'w+' if isfile else 'a+') as file:
+    metalog = load(file) if isfile else {}
+    metalog[args.symbol.name] = {
+        'sd': args.sd.timestamp(),
+        'ed': args.ed.timestamp()
+    }
+    dump(metalog, file)
