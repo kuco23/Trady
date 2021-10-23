@@ -1,3 +1,4 @@
+from numpy import zeros
 from pandas import DataFrame
 from sqlalchemy import MetaData, create_engine
 from tqdm import tqdm
@@ -7,7 +8,7 @@ from lib.cli import Argparser
 from lib.enums import Symbol, Trade
 from lib.exceptions import InvalidPosition
 from lib.graphics import drawHistory
-from lib.models import AbstractData, Record
+from lib.models import AbstractData, TradeRecord
 
 # the backtesting relies on the fact that the candles in the database
 # are ordered descendingly by date and spaced exactly 1 minute apart
@@ -78,6 +79,7 @@ class Data(AbstractData):
 if __name__ == '__main__':
 
     fee = 0.001 # binance max fee
+    q = 1 - fee
 
     argparser = Argparser()
     argparser.add_argument_strategy()
@@ -88,37 +90,48 @@ if __name__ == '__main__':
                   
     data = Data(args.sd, args.ed, args.si)
     state = {
-        'assets': {'USDT': 100, **{sym.value[0]: 0 for sym in Symbol}},
+        'assets': {sym.value[0]: 0 for sym in Symbol},
         'actions': []
     }
-    history = []
+    state['assets']['USDT'] = 100
 
+    # trades is dynamic, shouldn't be too long anyway
     iterations = (args.ed - args.sd) // args.si
-    progressbar = tqdm(total=iterations)
-    while data.now < data.end:
-        args.strategy(data, state)
-        while state['actions']:
-            action = state['actions'].pop()
-            base, quote = action.symbol.value
-            price = data.price(action.symbol)
-            
-            assets = state['assets']
-            if action.trade == Trade.BUY:
-                assets[base] = action.quantity / price * (1 - fee)
-                assets[quote] -= action.quantity
-            elif action.trade == Trade.SELL:
-                assets[quote] = action.quantity * price * (1 - fee)
-                assets[base] -= action.quantity
-            else: raise InvalidPosition(action.trade)
-            
-            history.append(Record(
-                data.now, action.trade, action.symbol,
-                action.quantity, price
-            ))
+    history, trades = zeros(iterations), []
 
-        progressbar.update(1)
-        data.moveTime()
-
-    drawHistory(data, history, args.sd, args.ed)
-    data.close()
+    # run historic trade simulation
+    with tqdm(total=iterations) as pb:
         
+        while data.now < data.end:
+            args.strategy(data, state)
+            while state['actions']:
+                action = state['actions'].pop()
+                base, quote = action.symbol.value
+                price = data.price(action.symbol)
+                
+                assets = state['assets']
+                if action.trade == Trade.BUY:
+                    assets[base] = action.quantity / price * q
+                    assets[quote] -= action.quantity
+                elif action.trade == Trade.SELL:
+                    assets[quote] = action.quantity * price * q
+                    assets[base] -= action.quantity
+                else: raise InvalidPosition(action.trade)
+                
+                trades.append(TradeRecord(
+                    data.now, action.trade, action.symbol,
+                    action.quantity, price
+                ))
+
+            # should be calculated externaly from trades
+            history[pb.n] = data.portfolioValue(state['assets'])
+
+            data.moveTime()
+            pb.update(1)
+
+    print('max value:', history.max())
+    print('min value:', history.min())
+    print('end value:', history.take(-1))
+
+    drawHistory(data, history, trades, args.sd, args.ed)
+    data.close()

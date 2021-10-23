@@ -2,7 +2,7 @@ import numpy as np
 from talib import RSI, EMA
 
 from ...enums import Trade, Symbol
-from ...models import Action
+from ...models import TradeAction
 
 def meanRevisionTrendWrapper(symbol):
     base, quote = symbol.value
@@ -17,11 +17,11 @@ def meanRevisionTrendWrapper(symbol):
 
         assets = state['assets']
         if ema1h > ema1d and rsi < 30 and assets[quote] > 0:
-            state['actions'].append(Action(
+            state['actions'].append(TradeAction(
                 Trade.BUY, symbol, assets[quote]
             ))
         elif ema1h < ema1d and rsi > 70 and assets[base] > 0:
-            state['actions'].append(Action(
+            state['actions'].append(TradeAction(
                 Trade.SELL, symbol, assets[base]
             ))
 

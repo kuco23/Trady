@@ -9,7 +9,7 @@ from lib import config as cfg
 from lib.cli import Argparser
 from lib.enums import BinanceCandle, Trade
 from lib.exceptions import InvalidPosition, OrderFillTimeout
-from lib.models import AbstractData, Record
+from lib.models import AbstractData, TradeRecord
 from lib.strategies import *
 
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
                 order_id = resp['id']
             else: raise InvalidPosition(action.trade)
 
-            history.append(Record(
+            history.append(TradeRecord(
                 datetime.now(), action.trade,
                 action.symbol, action.quantity, price
             ))

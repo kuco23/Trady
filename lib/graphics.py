@@ -3,8 +3,7 @@ from matplotlib import pyplot as plt
 from .enums import Trade
 
 
-def getAx(title, xlab, ylab):
-    fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+def _configAx(ax, title, xlab, ylab):
     ax.set_title(title)
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
@@ -13,16 +12,20 @@ def getAx(title, xlab, ylab):
     ax.spines['left'].set_alpha(0.5)
     ax.spines['bottom'].set_alpha(0.5)
     ax.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
-    return ax
 
-def drawHistory(data, history, sd, se):
-    symbol = history[0].symbol
+def drawHistory(data, history, trades, sd, se):
+    symbol = trades[0].symbol
     candles = data._candlesByDate(symbol, sd, se)
-    buys = ((r.time, r.price) for r in history if r.trade == Trade.BUY)
-    sells = ((r.time, r.price) for r in history if r.trade == Trade.SELL)
-    ax = getAx('history', 'datetime', symbol.name)
-    ax.plot(candles.opentime, candles.open, zorder=0)
-    ax.scatter(*zip(*buys), color='green', zorder=1)
-    ax.scatter(*zip(*sells), color='red', zorder=1)
+    buys = ((r.time, r.price) for r in trades if r.trade == Trade.BUY)
+    sells = ((r.time, r.price) for r in trades if r.trade == Trade.SELL)
+    
+    fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 8))
+    fig.suptitle('trades / portfolio value')
+    _configAx(ax1, '', 'datetime', symbol.name)
+    _configAx(ax2, '', 'datetime', 'USDT')
+    ax1.plot(candles.opentime, candles.open, zorder=0)
+    ax1.scatter(*zip(*buys), color='green', zorder=1)
+    ax1.scatter(*zip(*sells), color='red', zorder=1)
+    ax2.plot(candles.opentime, history, zorder=2)
     plt.show()
     

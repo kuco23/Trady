@@ -25,7 +25,7 @@ When backtesting a strategy make sure that it does not acquire earlier candles t
 
 ### Examples
 
-```powershell
+```bash
 python seed.py ADAUSDT -sd 2021 9 28 -ed 2021 10 10
 python backtest.py meanRevision ADAUSDT -sd 2021 10 1 -ed 2021 10 10
 ```
