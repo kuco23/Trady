@@ -2,7 +2,7 @@
 
 
 ### Basics
-This is a framework for writing trading algorithms on Binance using [python-binance](https://python-binance.readthedocs.io/en/latest/). 
+This is a framework for developing trading algorithms on [Binance](https://www.binance.com/), using its api via [python-binance](https://python-binance.readthedocs.io/en/latest/) python library.
 
 ### Config
 To configure the framework, the `config.ini` file has to be filled in. Specifically the Binance api keys have to be acquired and the database established (using the [Sqlalchemy symbol](https://www.tutorialspoint.com/sqlalchemy/sqlalchemy_core_connecting_to_database.htm)).

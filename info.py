@@ -2,7 +2,7 @@ from pathlib import Path
 from datetime import datetime
 from json import load
 
-from lib import config as cfg
+from lib import DbInfo, config as cfg
 from lib.cli import Argparser
 
 
@@ -17,7 +17,6 @@ argparser = Argparser()
 argparser.add_argument_symbol()
 args = argparser.parse_args()
 
-interval = availableCandles(args.symbol)
-if interval is not None:
-    for key in interval.keys():
-        print(key, datetime.fromtimestamp(interval[key]))
+info = DbInfo()
+for sd, ed in info._loadIntervals(args.symbol):
+    print(sd, ed)

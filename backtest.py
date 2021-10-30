@@ -6,7 +6,7 @@ from tqdm import tqdm
 from lib import config as cfg
 from lib.cli import Argparser
 from lib.enums import Symbol, Trade
-from lib.exceptions import InvalidPosition
+from lib.exceptions import InvalidPosition, DatabaseCandleError
 from lib.graphics import drawHistory
 from lib.models import AbstractData, TradeRecord
 
@@ -18,11 +18,11 @@ class Data(AbstractData):
     _bufflen = 10000 # length of the buffer candles
 
     def __init__(self, sd, se, dt):
-        self._buffer_candles = {sym: [] for sym in Symbol}
-        self._buffer_start = {sym: sd for sym in Symbol}
-        self._buffer_end = {sym: sd for sym in Symbol}
-        self._buffer_index = {sym: -1 for sym in Symbol}
         self._dm = dt // self._minute
+        self._bfc = {sym: [] for sym in Symbol}
+        self._bfs = {sym: sd for sym in Symbol}
+        self._bfe = {sym: sd for sym in Symbol}
+        self._bfi = {sym: -1 for sym in Symbol}
         
         self.dt = dt
         self.now = sd
@@ -40,35 +40,37 @@ class Data(AbstractData):
         table = self._getTable(symbol)
         sql_select = table.select().where(
             (sd < table.c.opentime) & (table.c.opentime <= ed)
-        )
+        ).order_by(table.c.opentime)
         candles = self.conn.execute(sql_select)
         colnames = table.columns.keys()
         return DataFrame(dict(zip(colnames, zip(*candles))))
 
     def _getBufferCandles(self, symbol, ncandles):
-        self._buffer_index[symbol] = ncandles - 1
-        self._buffer_start[symbol] = self.now - ncandles * self._minute
-        self._buffer_end[symbol] = self.now + self._bufflen * self._minute
-        self._buffer_candles[symbol] = self._candlesByDate(
-            symbol, self._buffer_start[symbol], self._buffer_end[symbol]
+        self._bfi[symbol] = ncandles - 1
+        self._bfs[symbol] = self.now - ncandles * self._minute
+        self._bfe[symbol] = self.now + self._bufflen * self._minute
+        self._bfc[symbol] = self._candlesByDate(
+            symbol, self._bfs[symbol], self._bfe[symbol]
         )
             
     # candle interval is always 1 minute, so calling getCandles with
     # ncandles=n results in n minutes of last candle data
     def candles(self, symbol, ncandles):
         if (
-            self.now - ncandles * self._minute < self._buffer_start[symbol] or
-            self.now > self._buffer_end[symbol]
+            self.now - ncandles * self._minute < self._bfs[symbol] or
+            self.now > self._bfe[symbol]
         ): self._getBufferCandles(symbol, ncandles)
-        bi = self._buffer_index[symbol]
-        return self._buffer_candles[symbol][bi - ncandles + 1:bi + 1]
+        bfi = self._bfi[symbol]
+        df = self._bfc[symbol][bfi - ncandles + 1:bfi + 1]
+        if len(df) != ncandles: raise DatabaseCandleError()
+        return df
 
     def price(self, symbol):
         return float(self.candles(symbol, 1).close)
 
     def moveTime(self):
         self.now += self.dt
-        for sym in Symbol: self._buffer_index[sym] += self._dm
+        for sym in Symbol: self._bfi[sym] += self._dm
 
     def close(self):
         self.conn.close()

@@ -11,6 +11,8 @@ class Symbol(Enum):
     CVCUSDT = ('CVC', 'USDT')
     BNBUSDT = ('BNB', 'USDT')
     SOLUSDT = ('SOL', 'USDT')
+    POLYUSDT = ('POLY', 'USDT')
+    TRXUSDT = ('TRX', 'USDT')
 
 class BinanceCandle(Enum):
     OPENTIME = 'opentime'

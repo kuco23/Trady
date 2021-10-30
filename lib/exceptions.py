@@ -3,4 +3,13 @@ class OrderFillTimeot(Exception):
 
 class InvalidPosition(Exception):
     def __init__(self, position):
-        return f'trade position {position} not recognized'
+        super().__init__(
+            f'Trade position {position} not recognized.'
+        )
+
+class DatabaseCandleError(Exception):
+    def __init__(self):
+        return super().__init__(
+            "This usually happens when a strategy requires "
+            "candles that are not in the database."
+        )

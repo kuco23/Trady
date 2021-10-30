@@ -58,22 +58,20 @@ if __name__ == '__main__':
             price = data.price(action.symbol)
 
             assets = state['assets']
-            order_filled = False
             if action.trade == Trade.BUY:
                 resp = client.order_market_buy(
                     symbol=action.symbol,
                     quantity=action.quantity
                 )
-                order_filled = resp['status'] == 'FILLED'
-                order_id = resp['id']
             elif action.trade == Trade.SELL:
                 resp = client.order_market_sell(
                     symbol=action.symbol,
                     quantity=action.quantity
                 )
-                order_filled = resp['status'] == 'FILLED'
-                order_id = resp['id']
             else: raise InvalidPosition(action.trade)
+            
+            order_filled = resp['status'] == 'FILLED'
+            order_id = resp['id']
 
             history.append(TradeRecord(
                 datetime.now(), action.trade,

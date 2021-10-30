@@ -16,7 +16,7 @@ class AbstractData(ABC):
     # in USDT
     def portfolioValue(self, assets):
         value = assets['USDT']
-        for (coin, amount) in assets.items():
+        for coin, amount in assets.items():
             if amount == 0 or coin == 'USDT': continue
             sym = Symbol.__members__.get(coin + 'USDT')
             value += amount * self.price(sym)

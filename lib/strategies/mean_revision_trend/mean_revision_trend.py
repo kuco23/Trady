@@ -11,9 +11,9 @@ def meanRevisionTrendWrapper(symbol):
         candles1d = data.candles(symbol, 24 * 60).iloc[::30,:]
         candles1h = data.candles(symbol, 60)
         
-        ema1d = float(EMA(candles1d.close).tail(1))
-        ema1h = float(EMA(candles1h.close).tail(1))
-        rsi = float(RSI(candles1h.close).tail(1))
+        ema1d = EMA(candles1d.close).iloc[-1]
+        ema1h = EMA(candles1h.close).iloc[-1]
+        rsi = RSI(candles1h.close).iloc[-1]
 
         assets = state['assets']
         if ema1h > ema1d and rsi < 30 and assets[quote] > 0:
