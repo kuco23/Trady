@@ -1,2 +1,2 @@
 from . import _config as config
-from ._dbinfo import DbInfo
+from ._db_info_manager import DbInfoManager

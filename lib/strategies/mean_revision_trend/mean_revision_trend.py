@@ -26,3 +26,8 @@ def meanRevisionTrendWrapper(symbol):
             ))
 
     return meanRevisionTrend
+
+mean_revision_trend_export = {
+    'wrapper': meanRevisionTrendWrapper,
+    'symbols': 'any'
+}

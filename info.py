@@ -2,7 +2,7 @@ from pathlib import Path
 from datetime import datetime
 from json import load
 
-from lib import DbInfo, config as cfg
+from lib import DbInfoManager, config as cfg
 from lib.cli import Argparser
 
 
@@ -17,6 +17,5 @@ argparser = Argparser()
 argparser.add_argument_symbol()
 args = argparser.parse_args()
 
-info = DbInfo()
-for sd, ed in info._loadIntervals(args.symbol):
-    print(sd, ed)
+info = DbInfoManager()
+print(info._loadIntervals(args.symbol))

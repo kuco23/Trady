@@ -8,12 +8,12 @@ from sqlalchemy import (Column, DateTime, Float, Integer, MetaData, Table,
                         create_engine)
 from tqdm import tqdm
 
-from lib import DbInfo, config as cfg
+from lib import DbInfoManager, config as cfg
 from lib.cli import Argparser
 
 
 minute = timedelta(minutes=1)
-tfm = '%Y-%m-%d %H:%M:%S'
+dtstr = '%Y-%m-%d %H:%M:%S'
 
 argparser = Argparser()
 argparser.add_argument_symbol()
@@ -21,13 +21,14 @@ argparser.add_argument_start_date()
 argparser.add_argument_end_date()
 args = argparser.parse_args()
 
-info = DbInfo()
-intervals = info.removedIntervals(args.symbol, args.sd, args.ed)
+info = DbInfoManager()
+tframes = info.reducedInterval(args.symbol, args.sd, args.ed)
+if tframes.is_empty(): exit('Nothing to load')
 
 client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
 candlegen = lambda sd, ed: client.get_historical_klines_generator(
     args.symbol.name, KLINE_INTERVAL_1MINUTE,
-    sd.strftime(tfm), (ed - minute).strftime(tfm)
+    sd.strftime(dtstr), (ed - minute).strftime(dtstr)
 )
 
 meta = MetaData()
@@ -46,10 +47,10 @@ engine = create_engine(cfg.SQLALCHEMY_SQLITE)
 candle_table.create(engine, checkfirst=True)
 conn = engine.connect()
 
-iterations = sum((ed - sd) // minute for sd, ed in intervals)
+iterations = sum((t.upper - t.lower) // minute for t in tframes)
 with tqdm(total=iterations) as pb:
     
-    for sd, ed in intervals:
+    for sd, ed in ((t.lower, t.upper) for t in tframes):
         top, tcp = None, None
         for i, candle in enumerate(candlegen(sd, ed)):
             

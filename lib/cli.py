@@ -8,13 +8,16 @@ class Argparser(argparse.ArgumentParser):
 
     class _SetStrategyAction(argparse.Action):
         def __call__(self, parser, namespace, values, ops=None):
-            if len(values) > 2: raise argparse.ArgumentTypeError(
-                'Too many arguments for strategy'
-            )
-            name, *sym = values
-            symbol = Symbol.__members__.get(sym[0] if sym else None)
-            strategy = getattr(strategies, name + 'Wrapper')
-            setattr(namespace, self.dest, strategy(symbol))
+            name, *syms = values
+            exported = getattr(strategies, name + '_export')
+            symbols = list(map(Symbol.__members__.get, syms))
+
+            if exported['symbols'] == 'more' and len(syms) > 0:
+                strategy = exported['wrapper'](symbols)
+            elif exported['symbols'] == 'any' and len(syms) == 1:
+                strategy = exported['wrapper'](*symbols)
+            
+            setattr(namespace, self.dest, strategy)
 
     class _SetSymbolAction(argparse.Action):
         def __call__(self, parser, namespace, value, ops=None):
