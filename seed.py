@@ -22,7 +22,7 @@ argparser.add_argument_end_date()
 args = argparser.parse_args()
 
 info = DbInfoManager()
-tframes = info.reducedInterval(args.symbol, args.sd, args.ed)
+tframes = info.missingData(args.symbol, args.sd, args.ed)
 if tframes.is_empty(): exit('Nothing to load')
 
 client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
@@ -82,4 +82,4 @@ with tqdm(total=iterations) as pb:
             top, tcp = to, tc
             pb.update(1)
 
-info.addInterval(args.symbol, args.sd, args.ed)
+info.dataAdded(args.symbol, args.sd, args.ed)

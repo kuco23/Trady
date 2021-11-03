@@ -35,16 +35,6 @@ class DbInfoManager:
         with open(self.path, 'w') as file:
             dump(self._info, file)
 
-    def _saveIntervals(self, symbol, intervals):
-        syminfo = self._info[symbol.name]
-        sd, ed = syminfo['sd'], syminfo['ed']
-        sd.clear()
-        ed.clear()
-        for interval in intervals:
-            sd.append(interval.lower.timestamp())
-            ed.append(interval.upper.timestamp())
-        self._save()
-
     def _loadIntervals(self, symbol):
         if symbol.name not in self._info.keys():
             self._addSymbolTemplate(symbol)
@@ -55,15 +45,31 @@ class DbInfoManager:
             intervals |= I.closedopen(sdi, edi)
         return intervals
 
+    def _saveIntervals(self, symbol, intervals):
+        syminfo = self._info[symbol.name]
+        sd, ed = syminfo['sd'], syminfo['ed']
+        sd.clear()
+        ed.clear()
+        for interval in intervals:
+            sd.append(interval.lower.timestamp())
+            ed.append(interval.upper.timestamp())
+        self._save()
+
     # to figure out which parts are missing when wanting
     # to get [sd, ed) interval of new candle data
-    def reducedInterval(self, symbol, sd, ed):
+    def missingData(self, symbol, sd, ed):
         interval = I.closedopen(sd, ed)
         intervals = self._loadIntervals(symbol)
         return interval - intervals
 
     # adding interval [sd, ed) of new candle data to info.json
-    def addInterval(self, symbol, sd, ed):
+    def dataAdded(self, symbol, sd, ed):
         interval = I.closedopen(sd, ed)
         intervals = self._loadIntervals(symbol)
         self._saveIntervals(symbol, interval | intervals)
+
+    # checking if the interval is included in the database
+    def hasData(self, symbol, sd, ed):
+        interval = I.closedopen(sd, ed)
+        intervals = self._loadIntervals(symbol)
+        return intervals.contains(interval)

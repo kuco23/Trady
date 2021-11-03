@@ -6,7 +6,9 @@ from tqdm import tqdm
 from lib import config as cfg
 from lib.cli import Argparser
 from lib.enums import Symbol, Trade
-from lib.exceptions import InvalidPosition, DatabaseCandleError
+from lib.exceptions import (
+    InvalidPosition, DatabaseCandleError, InsufficientData
+)
 from lib.graphics import drawHistory
 from lib.models import AbstractData, TradeRecord
 
