@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from json import dump, load
 from pathlib import Path
 
+import intervals as I
 from binance import Client
 from binance.enums import KLINE_INTERVAL_1MINUTE
 from sqlalchemy import (Column, DateTime, Float, Integer, MetaData, Table,
@@ -21,16 +22,7 @@ argparser.add_argument_start_date()
 argparser.add_argument_end_date()
 args = argparser.parse_args()
 
-info = DbInfoManager()
-tframes = info.missingData(args.symbol, args.sd, args.ed)
-if tframes.is_empty(): exit('Nothing to load')
-
-client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
-candlegen = lambda sd, ed: client.get_historical_klines_generator(
-    args.symbol.name, KLINE_INTERVAL_1MINUTE,
-    sd.strftime(dtstr), (ed - minute).strftime(dtstr)
-)
-
+# set up orm objects
 meta = MetaData()
 candle_table = Table(
     'candles' + args.symbol.name, meta,
@@ -47,6 +39,24 @@ engine = create_engine(cfg.SQLALCHEMY_SQLITE)
 candle_table.create(engine, checkfirst=True)
 conn = engine.connect()
 
+# check the state of the symbol's database table
+info = DbInfoManager()
+if info.loadingCompleted(args.symbol):
+    conn.execute(candle_table.delete())
+    tframes = I.closedopen(args.sd, args.ed)
+else:
+    tframes = info.missingData(args.symbol, args.sd, args.ed)
+    if tframes.is_empty(): exit('Was loaded in previous sessions')
+info.setLoading(args.symbol, True)
+
+# set the candle generator via binance api
+client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
+candlegen = lambda sd, ed: client.get_historical_klines_generator(
+    args.symbol.name, KLINE_INTERVAL_1MINUTE,
+    sd.strftime(dtstr), (ed - minute).strftime(dtstr)
+)
+
+# seed the database with data from candlegen
 iterations = sum((t.upper - t.lower) // minute for t in tframes)
 with tqdm(total=iterations) as pb:
     
@@ -83,3 +93,4 @@ with tqdm(total=iterations) as pb:
             pb.update(1)
 
 info.dataAdded(args.symbol, args.sd, args.ed)
+info.setLoading(args.symbol, False)

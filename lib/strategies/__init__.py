@@ -1,2 +1,2 @@
-from .mean_revision_trend.mean_revision_trend import mean_revision_trend_export
-from .bubble_find.bubble_find import bubble_find_export
+from .mean_revision_trend.mean_revision_trend import MeanRevisionTrend
+from .bubble_find.bubble_find import BubbleFind

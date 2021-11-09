@@ -91,8 +91,8 @@ if __name__ == '__main__':
     argparser.add_argument_end_date()
     argparser.add_argument_time_interval()
     args = argparser.parse_args()
-                  
-    data = Data(args.sd, args.ed, args.si)
+    
+    data = Data(args.sd, args.ed, args.ti)
     state = {
         'assets': {sym.value[0]: 0 for sym in Symbol},
         'actions': []
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     state['assets']['USDT'] = 100
 
     # trades is dynamic, shouldn't be too long anyway
-    iterations = (args.ed - args.sd) // args.si
+    iterations = (args.ed - args.sd) // args.ti
     history, trades = zeros(iterations), []
 
     # run historic trade simulation

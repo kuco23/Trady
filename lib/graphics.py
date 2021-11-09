@@ -14,6 +14,8 @@ def _configAx(ax, title, xlab, ylab):
     ax.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 
 def drawHistory(data, history, trades, sd, se):
+    assert len(trades) > 0
+    
     symbol = trades[0].symbol
     candles = data._candlesByDate(symbol, sd, se)
     buys = ((r.time, r.price) for r in trades if r.trade == Trade.BUY)
@@ -24,8 +26,8 @@ def drawHistory(data, history, trades, sd, se):
     _configAx(ax1, '', 'datetime', symbol.name)
     _configAx(ax2, '', 'datetime', 'USDT')
     ax1.plot(candles.opentime, candles.open, zorder=0)
-    ax1.scatter(*zip(*buys), color='green', zorder=1)
-    ax1.scatter(*zip(*sells), color='red', zorder=1)
+    #ax1.scatter(*zip(*buys), color='green', zorder=1)
+    #ax1.scatter(*zip(*sells), color='red', zorder=1)
     ax2.plot(candles.opentime, history, zorder=2)
     plt.show()
     

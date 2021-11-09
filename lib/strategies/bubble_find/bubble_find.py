@@ -3,36 +3,37 @@ from talib import SMA, EMA
 from ...enums import Trade, Symbol
 from ...models import TradeAction
 
-# trading USDT for multiple coins
-def bubbleFindWrapper(symbols):
-    
-    def bubbleFind(data, state):
-        assets = state['assets']
-        for symbol in symbols:
+class BubbleFind:
+
+    def __init__(self, symbols):
+        self.symbols = symbols
+
+    def bubbleFind(self, data, state):
+        assets, actions = state['assets'], state['actions']
+        
+        maxval, maxsym = 0, None
+        for symbol in self.symbols:
             base, quote = symbol.value
-            bq, qq = assets[base], assets[quote]
-            if bq == 0 and qq == 0: continue
+            ab, aq = assets[base], assets[quote]
+            if ab == 0 and aq == 0: continue
 
-            candles1d = data.candles(symbol, 60 * 24)
             candles1h = data.candles(symbol, 60)
-            
-            sma1d = SMA(candles1d.close[:30:]).iloc[-1]
-            sma1h = SMA(candles1h.close).iloc[-1]
-            dsma = sma1h / sma1d
+            candles10m = data.candles(symbol, 10)
 
-            actions = state['actions']
-            if bq > 0 and dsma > 1.01:
+            sma1h = candles1h.close.sum() / 60
+            sma10m = candles10m.close.sum() / 10
+
+            dsma = sma10m / sma1h
+            if dsma > maxval and aq > 0:
+                maxval = dsma
+                maxsym = symbol
+            elif dsma < 1 and ab > 0:
                 actions.append(TradeAction(
-                    Trade.BUY, symbol, assets[quote]
+                    Trade.SELL, symbol, ab
                 ))
-            elif qq > 0 and dsma < 0.99:
-                actions.append(TradeAction(
-                    Trade.BUY, symbol, assets[base]
-                ))
-                
-    return bubbleFind
-            
-bubble_find_export = {
-    'wrapper': bubbleFindWrapper,
-    'symbols': 'more'
-}
+
+        if maxval > 0:
+            base, quote = maxsym.value
+            actions.append(TradeAction(
+                Trade.BUY, maxsym, assets[quote]
+            ))

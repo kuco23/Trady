@@ -5,6 +5,7 @@ from datetime import datetime as dt, timedelta as td
 import intervals as I
 
 from . import config as cfg
+from .enums import Symbol
 
 
 """
@@ -14,14 +15,20 @@ Mainly it describes the datetime intervals, during which the
 candles are available for a given symbol.
 """
 
-class DbInfoManager:
+class DbInfoManager: 
 
     def __init__(self):
         self.path = Path(cfg.INFO_PATH)
         self._load()
+        self._fillSymbolInfo()
 
-    def _addSymbolTemplate(self, symbol):
-        self._info[symbol.name] = {'sd': [], 'ed': []}
+    def _infoTemplate(self, symbol):
+        return {'sd': [], 'ed': [], 'loading': False}
+
+    def _fillSymbolInfo(self):
+        for symbol in Symbol:
+            if symbol.name in self._info: continue
+            self._info[symbol.name] = self._infoTemplate(symbol)
 
     def _load(self):
         if self.path.is_file():
@@ -73,3 +80,10 @@ class DbInfoManager:
         interval = I.closedopen(sd, ed)
         intervals = self._loadIntervals(symbol)
         return intervals.contains(interval)
+
+    def setLoading(self, symbol, is_loading):
+        self._info[symbol.name]['loading'] = is_loading
+        self._save()
+
+    def loadingCompleted(self, symbol):
+        return self._info[symbol.name]['loading']

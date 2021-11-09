@@ -9,15 +9,12 @@ class Argparser(argparse.ArgumentParser):
     class _SetStrategyAction(argparse.Action):
         def __call__(self, parser, namespace, values, ops=None):
             name, *syms = values
-            exported = getattr(strategies, name + '_export')
+            clsname = name.replace('_', ' ').title().replace(' ', '')
+            mthname = clsname[0].lower() + clsname[1:]
             symbols = list(map(Symbol.__members__.get, syms))
-
-            if exported['symbols'] == 'more' and len(syms) > 0:
-                strategy = exported['wrapper'](symbols)
-            elif exported['symbols'] == 'any' and len(syms) == 1:
-                strategy = exported['wrapper'](*symbols)
-            
-            setattr(namespace, self.dest, strategy)
+            strategy_obj = getattr(strategies, clsname)(symbols)
+            strategy_meth = getattr(strategy_obj, mthname)
+            setattr(namespace, self.dest, strategy_meth)
 
     class _SetSymbolAction(argparse.Action):
         def __call__(self, parser, namespace, value, ops=None):
@@ -74,7 +71,7 @@ class Argparser(argparse.ArgumentParser):
         
     def add_argument_time_interval(self):
         self.add_argument(
-            '-si', type=int, default=1, metavar='minutes',
+            '-ti', type=int, default=1, metavar='minutes',
             help='strategy time interval in minutes',
             action=self._SetTimeIntervalAction
         )
