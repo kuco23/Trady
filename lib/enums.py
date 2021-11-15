@@ -5,7 +5,12 @@ class Trade(IntEnum):
     BUY = 1
 
 class Symbol(Enum):
+    BTCUSDT = ('BTC', 'USDT')
+    BCHUSDT = ('BCH', 'USDT')
+    BTTUSDT = ('BTT', 'USDT')
     ADAUSDT = ('ADA', 'USDT')
+    DOTUSDT = ('DOT', 'USDT')
+    DOGEUSDT = ('DOGE', 'USDT')
     SHIBUSDT = ('SHIB', 'USDT')
     ICPUSDT = ('ICP', 'USDT')
     CVCUSDT = ('CVC', 'USDT')
@@ -13,6 +18,12 @@ class Symbol(Enum):
     SOLUSDT = ('SOL', 'USDT')
     POLYUSDT = ('POLY', 'USDT')
     TRXUSDT = ('TRX', 'USDT')
+    XTZUSDT = ('XTZ', 'USDT')
+    SUSHIUSDT = ('SUSHI', 'USDT')
+    CAKEUSDT = ('CAKE', 'USDT')
+    XRPUSDT = ('XRP', 'USDT')
+    CRVUSDT = ('CRV', 'USDT')
+    LUNAUSDT = ('LUNA', 'USDT')
 
 class BinanceCandle(Enum):
     OPENTIME = 'opentime'

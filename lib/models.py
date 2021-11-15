@@ -22,7 +22,10 @@ class AbstractData(ABC):
             value += amount * self.price(sym)
         return value
 
-TradeAction = namedtuple('action', ('trade', 'symbol', 'quantity'))
-TradeRecord = namedtuple('history_record',
-    ('time', 'trade', 'symbol', 'quantity', 'price')
+TradeAction = namedtuple(
+    'action', ('trade', 'symbol', 'quantity', 'ratio'),
+    defaults = (None, None, None, None)
+)
+TradeRecord = namedtuple(
+    'history_record', ('time', 'trade', 'symbol', 'quantity', 'price')
 )

@@ -1,12 +1,13 @@
+import os
+from pytz import UTC
 from datetime import datetime, timedelta
 from json import dump, load
 from pathlib import Path
 
-import intervals as I
 from binance import Client
 from binance.enums import KLINE_INTERVAL_1MINUTE
 from sqlalchemy import (Column, DateTime, Float, Integer, MetaData, Table,
-                        create_engine)
+                        UniqueConstraint, create_engine)
 from tqdm import tqdm
 
 from lib import DbInfoManager, config as cfg
@@ -14,7 +15,6 @@ from lib.cli import Argparser
 
 
 minute = timedelta(minutes=1)
-dtstr = '%Y-%m-%d %H:%M:%S'
 
 argparser = Argparser()
 argparser.add_argument_symbol()
@@ -33,7 +33,8 @@ candle_table = Table(
     Column('low', Float),
     Column('close', Float),
     Column('closetime', DateTime),
-    Column('trades', Integer)
+    Column('trades', Integer),
+    UniqueConstraint('opentime')
 )
 engine = create_engine(cfg.SQLALCHEMY_SQLITE)
 candle_table.create(engine, checkfirst=True)
@@ -43,29 +44,29 @@ conn = engine.connect()
 info = DbInfoManager()
 if info.loadingCompleted(args.symbol):
     conn.execute(candle_table.delete())
-    tframes = I.closedopen(args.sd, args.ed)
-else:
-    tframes = info.missingData(args.symbol, args.sd, args.ed)
-    if tframes.is_empty(): exit('Was loaded in previous sessions')
+    info.clearData(args.symbol)
 info.setLoading(args.symbol, True)
+
+# get timeframes not already in the database for symbol
+tframes = info.missingData(args.symbol, args.sd, args.ed)
+if tframes.is_empty(): os._exit(0)
 
 # set the candle generator via binance api
 client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
 candlegen = lambda sd, ed: client.get_historical_klines_generator(
-    args.symbol.name, KLINE_INTERVAL_1MINUTE,
-    sd.strftime(dtstr), (ed - minute).strftime(dtstr)
+    args.symbol.name, KLINE_INTERVAL_1MINUTE, str(sd), str(ed - minute)
 )
 
-# seed the database with data from candlegen
+# seed the database with data from each candlegen
 iterations = sum((t.upper - t.lower) // minute for t in tframes)
 with tqdm(total=iterations) as pb:
     
     for sd, ed in ((t.lower, t.upper) for t in tframes):
         top, tcp = None, None
         for i, candle in enumerate(candlegen(sd, ed)):
-            
-            to = datetime.fromtimestamp(candle[0] / 1000)
-            tc = datetime.fromtimestamp(candle[6] / 1000)
+
+            to = datetime.fromtimestamp(candle[0] / 1000, UTC)
+            tc = datetime.fromtimestamp(candle[6] / 1000, UTC)
             sql_insert = candle_table.insert().values(
                 opentime=to,
                 open=candle[1],

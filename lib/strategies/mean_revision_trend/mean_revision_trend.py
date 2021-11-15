@@ -21,9 +21,9 @@ class MeanRevisionTrend:
         assets = state['assets']
         if ema1h > ema1d and rsi < 30 and assets[self.q] > 0:
             state['actions'].append(TradeAction(
-                Trade.BUY, symbol, assets[self.q]
+                Trade.BUY, self.symbol, assets[self.q]
             ))
         elif ema1h < ema1d and rsi > 70 and assets[self.b] > 0:
             state['actions'].append(TradeAction(
-                Trade.SELL, symbol, assets[self.b]
+                Trade.SELL, self.symbol, assets[self.b]
             ))

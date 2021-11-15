@@ -41,7 +41,7 @@ class Data(AbstractData):
     def _candlesByDate(self, symbol, sd, ed):
         table = self._getTable(symbol)
         sql_select = table.select().where(
-            (sd < table.c.opentime) & (table.c.opentime <= ed)
+            (sd <= table.c.opentime) & (table.c.opentime < ed)
         ).order_by(table.c.opentime)
         candles = self.conn.execute(sql_select)
         colnames = table.columns.keys()
@@ -110,21 +110,28 @@ if __name__ == '__main__':
             args.strategy(data, state)
             while state['actions']:
                 action = state['actions'].pop()
+                assets = state['assets']
                 base, quote = action.symbol.value
                 price = data.price(action.symbol)
                 
-                assets = state['assets']
-                if action.trade == Trade.BUY:
-                    assets[base] = action.quantity / price * q
-                    assets[quote] -= action.quantity
+                if action.quantity is not None:
+                    quantity = action.quantity
+                elif action.trade == Trade.BUY:
+                    quantity = assets[quote] * action.ratio
                 elif action.trade == Trade.SELL:
-                    assets[quote] = action.quantity * price * q
-                    assets[base] -= action.quantity
+                    quantity = assets[base] * action.ratio
+                
+                if action.trade == Trade.BUY:
+                    assets[base] += quantity / price * q
+                    assets[quote] -= quantity
+                elif action.trade == Trade.SELL:
+                    assets[quote] += quantity * price * q
+                    assets[base] -= quantity
                 else: raise InvalidPosition(action.trade)
                 
                 trades.append(TradeRecord(
                     data.now, action.trade, action.symbol,
-                    action.quantity, price
+                    quantity, price
                 ))
 
             # should be calculated externaly from trades
@@ -136,6 +143,7 @@ if __name__ == '__main__':
     print('max value:', history.max())
     print('min value:', history.min())
     print('end value:', history.take(-1))
+    print('number of trades:', len(trades))
 
     drawHistory(data, history, trades, args.sd, args.ed)
     data.close()

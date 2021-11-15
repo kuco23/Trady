@@ -17,17 +17,17 @@ class BubbleFind:
             ab, aq = assets[base], assets[quote]
             if ab == 0 and aq == 0: continue
 
-            candles1h = data.candles(symbol, 60)
+            candles30m = data.candles(symbol, 30)
             candles10m = data.candles(symbol, 10)
 
-            sma1h = candles1h.close.sum() / 60
-            sma10m = candles10m.close.sum() / 10
+            sma30m = SMA(candles30m.close, 30).iloc[-1]
+            sma10m = SMA(candles10m.close, 10).iloc[-1]
 
-            dsma = sma10m / sma1h
-            if dsma > maxval and aq > 0:
+            dsma = sma10m / sma30m
+            if dsma > 1.2 and dsma > maxval and aq > 0:
                 maxval = dsma
                 maxsym = symbol
-            elif dsma < 1 and ab > 0:
+            elif dsma < 0.8 and ab > 0:
                 actions.append(TradeAction(
                     Trade.SELL, symbol, ab
                 ))

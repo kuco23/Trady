@@ -62,6 +62,10 @@ class DbInfoManager:
             ed.append(interval.upper.timestamp())
         self._save()
 
+    def clearData(self, symbol):
+        self._info[symbol.name] = self._infoTemplate(symbol)
+        self._save()
+
     # to figure out which parts are missing when wanting
     # to get [sd, ed) interval of new candle data
     def missingData(self, symbol, sd, ed):

@@ -133,3 +133,5 @@ config.ini
 # data
 data
 *.txt
+
+environment.py

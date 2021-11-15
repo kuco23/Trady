@@ -4,6 +4,7 @@ from json import load
 
 from lib import DbInfoManager, config as cfg
 from lib.cli import Argparser
+from lib.enums import Symbol
 
 
 def availableCandles(symbol):
@@ -18,4 +19,5 @@ argparser.add_argument_symbol()
 args = argparser.parse_args()
 
 info = DbInfoManager()
-print(info._loadIntervals(args.symbol))
+for sym in Symbol:
+    print(sym.name + ':', info._loadIntervals(sym))
