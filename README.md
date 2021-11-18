@@ -2,22 +2,28 @@
 
 
 ### Basics
-This is a framework for developing trading algorithms on [Binance](https://www.binance.com/), using its api via [python-binance](https://python-binance.readthedocs.io/en/latest/) python library.
+This is a framework for developing trading algorithms on [Binance](https://www.binance.com/), using its api via [python-binance](https://python-binance.readthedocs.io/en/latest/) library.
 
 ### Config
-To configure the framework, the `config.ini` file has to be filled in. Specifically the Binance api keys have to be acquired and the database established (using the [Sqlalchemy symbol](https://www.tutorialspoint.com/sqlalchemy/sqlalchemy_core_connecting_to_database.htm)).
+To configure the framework, fill in the `config.ini` file. Specifically the Binance api keys have to be acquired and the database established (using the [sqlalchemy symbol](https://www.tutorialspoint.com/sqlalchemy/sqlalchemy_core_connecting_to_database.htm)).
 
-### Strategies
-Strategies are defined in `lib.strategies` as packages. Some strategies trade a specific symbol and can therefore be initialized by a wrapper function.
+### Strategies and Symbols
+Strategies are defined in `lib.strategies` as packages. Most strategies will be parametrized by the trading symbols. Thus every strategy has to be initialized by its wrapping function. The symbols that can be traded are defined in `Symbol` enum inside `lib.enums`.
+
+### Trading
+To trade a strategy (that is defined in `lib.strategies`), one only has to run `python trady.py <strategy> <symbol_1> ... <symbol_n> -ti <time_interval>`. This means that the chosen strategy will trade the given symbols and be called every `<time_interval>` minutes.
 
 ### Tests
 Repo implements two ways to test a given strategy.
 
-- **Backtesting**: For strategies that depend solely on the previous candle data for featured symbols. Backtest by running `python <strategy> <symbol> -sd <start date> -ed <end date>` on cli. Here the database must contain candles in between`<start date>` and `<end date>` for `<symbol>`  (see Seeding). Note also that `<symbol>` is optional and can be ommited if `<strategy>` does not require it.
-- **Livetesting**: For strategies that also depend on some outside factors (eg. scraping the web for crypto news). Livetest by running `python <strategy> <symbol>` (comming soon).
+- **Backtesting**: For strategies that depend solely on the previous candle data for featured symbols. Backtest by running  `python trady.py backtest <strategy> <symbol_1> ... <symbol_n> -sd <start date> -ed <end date>` on cli. Here the database must contain candles in between`<start date>` and `<end date>` for every symbol `<symbol_i>`  (see Seeding).
+- **Livetesting**: For strategies that also depend on some outside factors (eg. scraping the web for crypto news). Livetest by running `python trady.py livetest <strategy> <symbol_1> ... <symbol_n>` (comming soon).
 
 ### Seeding
-When backtesting, it is required to have candles saved in the database. You can load them by running `python seed.py <symbol> -sd <start date> -ed <end date>`, where `-ed` is optional, defaulting on the current day's midnight. 
+When backtesting, it is required to have candles saved in the database. You can load them by running `python trady.py seed <symbol_1> ... <symbol_n> -sd <start date> -ed <end date>`, where `-ed` is optional, defaulting on the current day's midnight. 
+
+### Candle Information
+If you wish to check timeframe during which candles are obtained in the database for specific symbols, you can use `python trady.py info <symbol_1> ... <symbol_n>`.
 
 ### Notes
 
@@ -26,6 +32,8 @@ When backtesting a strategy make sure that it does not acquire earlier candles t
 ### Examples
 
 ```bash
-python seed.py ADAUSDT -sd 2021 9 28 -ed 2021 10 10
-python backtest.py meanRevision ADAUSDT -sd 2021 10 1 -ed 2021 10 10
+python trady.py seed ADAUSDT -sd 2021 9 28 -ed 2021 10 10
+python trady.py backtest meanRevision ADAUSDT -sd 2021 10 1 -ed 2021 10 10
+python trady.py trade meanRevision ADAUSDT
 ```
+
