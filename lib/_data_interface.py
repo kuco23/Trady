@@ -20,7 +20,7 @@ minute = timedelta(minutes=1)
 class CandleInfoManager: 
 
     def __init__(self):
-        self.path = Path(cfg.DATABASE_INFO_PATH)
+        self.path = Path(cfg.DATABASE_INFOPATH)
         self._load()
         self._fillSymbolInfo()
 
@@ -63,6 +63,13 @@ class CandleInfoManager:
             sd.append(interval.lower.timestamp())
             ed.append(interval.upper.timestamp())
         self._save()
+    
+    def repr(self, symbol):
+        intervals = self._loadIntervals(symbol)
+        return symbol.name + ' -> ' + ' | '.join([
+            f'[{interval.lower}, {interval.upper})'
+            for interval in intervals
+        ])
 
     def clearData(self, symbol):
         self._info[symbol.name] = self._infoTemplate(symbol)
@@ -92,7 +99,7 @@ class CandleInfoManager:
         self._save()
 
     def loadingCompleted(self, symbol):
-        return self._info[symbol.name]['loading']
+        return not self._info[symbol.name]['loading']
 
 class CandleSeeder:
 
@@ -115,20 +122,21 @@ class CandleSeeder:
             UniqueConstraint('opentime')
         )
 
-    def _candleGenerator(self):
+    def _candleGenerator(self, symbol):
         client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
         return lambda sd, ed: client.get_historical_klines_generator(
-            self.symbol.name, KLINE_INTERVAL_1MINUTE,
-            str(sd), str(ed - self._m)
+            symbol.name, KLINE_INTERVAL_1MINUTE, str(sd), str(ed - minute)
         )
 
     def seed(self, symbol, sd, ed):
         conn = self.engine.connect()
         table = self._makeTable(symbol)
+        table.create(self.engine, checkfirst=True)
 
         # clear data if table is marked dirty
         # and set table dirty, meaning seeding started
-        if self.info.loadingCompleted(symbol):
+        if not self.info.loadingCompleted(symbol):
+            print(self.info._info)
             conn.execute(table.delete())
             self.info.clearData(symbol)
         self.info.setLoading(symbol, True)
@@ -139,7 +147,7 @@ class CandleSeeder:
         if tframes.is_empty(): return
 
         # seed the database with data from each candlegen
-        candlegen = self._candleGenerator()
+        candlegen = self._candleGenerator(symbol)
         iterations = sum((t.upper - t.lower) // minute for t in tframes)
         with tqdm(total=iterations) as pb:
             

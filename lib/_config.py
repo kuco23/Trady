@@ -7,7 +7,9 @@ parser = configparser.ConfigParser()
 parser.read(path, encoding='utf-8-sig')
 
 def setVarName(section, key):
-    return section.replace('-', '_').upper() + '_' + key.upper()
+    s = section.replace('-', '_').upper()
+    k = key.replace('-', '').upper()
+    return f'{s}_{k}'
 
 for section in parser.sections():
     keys = parser.options(section)

@@ -1,7 +1,7 @@
 from talib import RSI, EMA
 
-from ...lib.enums import Trade, Symbol
-from ...lib.models import TradeAction
+from ...enums import Trade, Symbol
+from ...models import TradeAction
 
 def meanRevisionTrendWrapper(symbols):
     symbol = symbols[0]

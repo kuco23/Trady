@@ -1,7 +1,7 @@
 from talib import SMA
 
-from ...lib.enums import Trade
-from ...lib.models import TradeAction
+from ...enums import Trade
+from ...models import TradeAction
 
 def bubbleFindWrapper(symbols):
 
@@ -9,7 +9,7 @@ def bubbleFindWrapper(symbols):
         assets, actions = state['assets'], state['actions']
         
         maxval, maxsym = 0, None
-        for symbol in self.symbols:
+        for symbol in symbols:
             base, quote = symbol.value
             ab, aq = assets[base], assets[quote]
             if ab == 0 and aq == 0: continue

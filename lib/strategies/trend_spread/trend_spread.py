@@ -1,7 +1,7 @@
 from talib import EMA, RSI
 
-from ...lib.enums import Trade
-from ...lib.models import TradeAction
+from ...enums import Trade
+from ...models import TradeAction
 
 def trendSpreadWrapper(symbols):
     treshold = 1
@@ -35,3 +35,5 @@ def trendSpreadWrapper(symbols):
                 state['actions'].append(TradeAction(
                     Trade.BUY, symbol, ratio=1/len(bulls)
                 ))
+    
+    return trendSpread

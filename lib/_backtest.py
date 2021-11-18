@@ -1,11 +1,9 @@
 from numpy import zeros
-from sqlalchemy import MetaData, create_engine
 from tqdm import tqdm
 
-from . import cfg, CandleBrowser
+from . import CandleBrowser
 from .enums import Symbol, Trade
 from .exceptions import InvalidPosition, DatabaseCandleError
-from .graphics import drawHistory
 from .models import AbstractData, TradeRecord, state_template
 
 # the backtesting relies on the fact that the candles in the database
@@ -69,7 +67,7 @@ class BacktestEngine:
         state['assets']['USDT'] = 100
 
         # trades is dynamic, shouldn't be too long anyway
-        iterations = (sd - ed) // ti
+        iterations = (ed - sd) // ti
         history, trades = zeros(iterations), []
 
         # run historic trade simulation

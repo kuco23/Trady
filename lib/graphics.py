@@ -17,7 +17,7 @@ def drawHistory(data, history, trades, sd, se):
     assert len(trades) > 0
     
     symbol = trades[0].symbol
-    candles = data._candlesByDate(symbol, sd, se)
+    candles = data.candlesByDate(symbol, sd, se)
     buys = ((r.time, r.price) for r in trades if r.trade == Trade.BUY)
     sells = ((r.time, r.price) for r in trades if r.trade == Trade.SELL)
     
