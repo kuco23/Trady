@@ -1,18 +1,14 @@
-from talib import SMA, EMA, RSI
+from talib import EMA, RSI
 
-from ...enums import Trade, Symbol
-from ...models import TradeAction
+from ...lib.enums import Trade
+from ...lib.models import TradeAction
 
-class TrendSpread:
+def trendSpreadWrapper(symbols):
+    treshold = 1
 
-    def __init__(self, symbols):
-        self.symbols = symbols
-        self.n = len(symbols)
-        self.treshold = self.n // 3
-
-    def trendSpread(self, data, state):
+    def trendSpread(data, state):
         bulls, bears = [], []
-        for symbol in self.symbols:
+        for symbol in symbols:
 
             candles1d = data.candles(symbol, 60 * 24)
             candles1h = data.candles(symbol, 60)
@@ -33,7 +29,7 @@ class TrendSpread:
                 Trade.SELL, symbol, ratio=1
             ))                  
 
-        if len(bulls) >= self.treshold:
+        if len(bulls) >= treshold:
             for symbol in bulls:
                 base, quote = symbol.value
                 state['actions'].append(TradeAction(

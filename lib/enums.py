@@ -24,17 +24,21 @@ class Symbol(Enum):
     XRPUSDT = ('XRP', 'USDT')
     CRVUSDT = ('CRV', 'USDT')
     LUNAUSDT = ('LUNA', 'USDT')
+    ATOMUSDT = ('ATOM', 'USDT')
+    QNTUSDT = ('QNT', 'USDT')
+    CLVUSDT = ('CLV', 'USDT')
+    AXSUSDT = ('AXS', 'USDT')
 
 class BinanceCandle(Enum):
-    OPENTIME = 'opentime'
-    OPEN = 'open'
-    HIGH = 'high'
-    LOW = 'low'
-    CLOSE = 'close'
-    VOLUME = 'volume'
-    CLOSETIME = 'closetime'
-    QUOTE = 'quote'
-    TRADES = 'trades'
-    TAKER_BASE_VOLUME = 'taker_basevol'
-    TAKER_QUOTE_VOLUME = 'taker_quotevol'
-    IGNORE = 'ignore'
+    OPENTIME = ('opentime', int)
+    OPEN = ('open', float)
+    HIGH = ('high', float)
+    LOW = ('low', float)
+    CLOSE = ('close', float)
+    VOLUME = ('volume', float)
+    CLOSETIME = ('closetime', int)
+    QUOTE = ('quote', float)
+    TRADES = ('trades', int)
+    TAKER_BASE_VOLUME = ('taker_basevol', float)
+    TAKER_QUOTE_VOLUME = ('taker_quotevol', float)
+    IGNORE = ('ignore', float)

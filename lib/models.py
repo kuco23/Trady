@@ -1,8 +1,14 @@
 from abc import ABC
-from datetime import timedelta
-from collections import namedtuple
+from datetime import datetime, timedelta
+from dataclasses import dataclass
 
-from .enums import Symbol
+from .enums import Symbol, Trade
+
+
+state_template = {
+    'assets': {sym.value[0]: 0 for sym in Symbol},
+    'actions': []
+}
 
 class AbstractData(ABC):
     _minute = timedelta(minutes=1)
@@ -22,10 +28,17 @@ class AbstractData(ABC):
             value += amount * self.price(sym)
         return value
 
-TradeAction = namedtuple(
-    'action', ('trade', 'symbol', 'quantity', 'ratio'),
-    defaults = (None, None, None, None)
-)
-TradeRecord = namedtuple(
-    'history_record', ('time', 'trade', 'symbol', 'quantity', 'price')
-)
+@dataclass
+class TradeAction:
+    trade: Trade
+    symbol: Symbol
+    quantity: float = None
+    ratio: float = None
+
+@dataclass
+class TradeRecord:
+    time: datetime
+    trade: Trade
+    symbol: Symbol
+    quantity: float
+    price: float

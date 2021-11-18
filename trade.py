@@ -10,32 +10,38 @@ from lib.cli import Argparser
 from lib.enums import BinanceCandle, Trade
 from lib.exceptions import InvalidPosition, OrderFillTimeout
 from lib.models import AbstractData, TradeRecord
-from lib.strategies import *
+from strategies import *
 
 
 class Data(AbstractData):
-    _candleattr = [e.name for e in BinanceCandle]
+    _candleattr = [e.value[0] for e in BinanceCandle]
+    _candletype = [e.value[1] for e in BinanceCandle]
     
     def __init__(self, client):
         self.client = client
 
     def candles(self, symbol, ncandles):
-        candles = self.client.get_klines(
+        resp = self.client.get_klines(
             symbol=symbol.name,
             interval=KLINE_INTERVAL_1MINUTE,
             limit=ncandles
         )
-        return DataFrame(dict(zip(self._candleattr, candles)))
+        candles = [
+            [tp(c) for tp, c in zip(self._candletype, row)]
+            for row in resp
+        ]
+        return DataFrame(dict(zip(self._candleattr, zip(*candles))))
 
     def price(self, symbol):
-        return self.client.get_avg_price(symbol)['price']
+        return self.candles(symbol,1).close.iloc[-1]
+        
 
-def getAssets(client):
-    account_data = client.get_account()
-    return {
-        balance['asset']: balance['free']
-        for balance in account_data['balances']
-    }
+    def assets(self):
+        account_data = self.client.get_account()
+        return {
+            balance['asset']: float(balance['free'])
+            for balance in account_data['balances']
+        }
 
 if __name__ == '__main__':
 
@@ -47,50 +53,62 @@ if __name__ == '__main__':
     client = Client(cfg.BINANCE_API_KEY, cfg.BINANCE_API_SECRET)
 
     data = Data(client)
-    state = {'assets': getAssets(client), 'actions': []}
-    history = []
+    state = {'assets': data.assets(), 'actions': []}
+    trades, history = [], []
 
     while True:
+        slept = 0
         args.strategy(data, state)
         while state['actions']:
             action = state['actions'].pop()
+            assets = state['assets']
             base, quote = action.symbol.value
             price = data.price(action.symbol)
 
-            assets = state['assets']
+            if action.quantity is not None:
+                quantity = action.quantity
+            elif action.trade == Trade.BUY:
+                quantity = assets[quote] * action.ratio
+            elif action.trade == Trade.SELL:
+                quantity = assets[base] * action.ratio
+
             if action.trade == Trade.BUY:
                 resp = client.order_market_buy(
                     symbol=action.symbol,
-                    quantity=action.quantity
+                    quantity=quantity
                 )
             elif action.trade == Trade.SELL:
                 resp = client.order_market_sell(
                     symbol=action.symbol,
-                    quantity=action.quantity
+                    quantity=quantity
                 )
             else: raise InvalidPosition(action.trade)
             
             order_filled = resp['status'] == 'FILLED'
             order_id = resp['id']
 
-            history.append(TradeRecord(
+            trades.append(TradeRecord(
                 datetime.now(), action.trade,
-                action.symbol, action.quantity, price
+                action.symbol, quantity, price
             ))
-               
-            slept = 0
+
+            print(trades[-1])
+            
             while not order_filled:
-                sleep(2)
-                slept += 2
-                if mt > args.si: raise OrderFillTimeout()
+                sleep(0.3)
+                slept += 1
+                if slept > 10: raise OrderFillTimeout()
                 order = client.get_order(
                     symbol=action.symbol,
                     orderId=order_id
                 )
                 order_filled = order['status'] == 'FILLED'
 
-            state['assets'] = getAssets(client)
-            print(base, state['assets'][base])
-            print(quote, state['assets'][quote])
-            sleep(args.si.seconds - slept)
+            state['assets'] = data.assets()
+
+        history.append(data.portfolioValue(state['assets']))
+
+        print('portfolio value:', history[-1])
+
+        sleep(args.ti.seconds)
             

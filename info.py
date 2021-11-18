@@ -7,17 +7,14 @@ from lib.cli import Argparser
 from lib.enums import Symbol
 
 
-def availableCandles(symbol):
-    path = Path(cfg.DATA_PATH_META)
-    if not path.exists(): return
-    with open(path, 'r') as file:
-        data = load(file)
-    return data.get(symbol.name)
-
 argparser = Argparser()
-argparser.add_argument_symbol()
 args = argparser.parse_args()
 
 info = DbInfoManager()
 for sym in Symbol:
-    print(sym.name + ':', info._loadIntervals(sym))
+    intervals = info._loadIntervals(sym)
+    trepr = ' & '.join([
+        f'{interval.lower} - {interval.upper}'
+        for interval in intervals
+    ])
+    print(sym.name + ':', trepr)

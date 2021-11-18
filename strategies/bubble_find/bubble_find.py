@@ -1,12 +1,9 @@
-from talib import SMA, EMA
+from talib import SMA
 
-from ...enums import Trade, Symbol
-from ...models import TradeAction
+from ...lib.enums import Trade
+from ...lib.models import TradeAction
 
-class BubbleFind:
-
-    def __init__(self, symbols):
-        self.symbols = symbols
+def bubbleFindWrapper(symbols):
 
     def bubbleFind(self, data, state):
         assets, actions = state['assets'], state['actions']
@@ -37,3 +34,5 @@ class BubbleFind:
             actions.append(TradeAction(
                 Trade.BUY, maxsym, assets[quote]
             ))
+    
+    return bubbleFind
