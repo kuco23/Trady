@@ -2,13 +2,13 @@ from pathlib import Path
 
 _cwd = Path().cwd() / 'lib' / 'strategies'
 
-def camelize(snakecase):
+def _camelize(snakecase):
     classcase = snakecase.replace('_', ' ').title().replace(' ', '')
     camelcase = classcase[0].lower() + classcase[1:]
     return camelcase
 
 def getStrategy(name, symbols):
-    wrapper_name = camelize(name + '_wrapper')
+    wrapper_name = _camelize(name + '_wrapper')
     wrapper = globals()[wrapper_name]
     return wrapper(symbols)
 
@@ -18,5 +18,5 @@ names = [
 ]
 
 for name in names:
-    wrappername = camelize(name) + 'Wrapper'
+    wrappername = _camelize(name) + 'Wrapper'
     exec(f'from .{name}.{name} import {wrappername}')

@@ -13,7 +13,7 @@ def _configAx(ax, title, xlab, ylab):
     ax.spines['bottom'].set_alpha(0.5)
     ax.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 
-def drawHistory(data, history, trades, sd, se):
+def drawTradeHistory(data, history, trades, sd, se):
     assert len(trades) > 0
     
     symbol = trades[0].symbol

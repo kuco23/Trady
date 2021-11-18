@@ -6,10 +6,10 @@ from typer import Typer, Option
 
 from lib import (
     CandleSeeder, CandleBrowser, CandleInfoManager, 
-    BacktestEngine, strategies
+    BacktestEngine, TradeEngine, strategies
 )
 from lib.enums import Symbol
-from lib.graphics import drawHistory
+from lib.graphics import drawTradeHistory
 
 
 app = Typer()
@@ -18,15 +18,14 @@ minute = timedelta(minutes=1)
 isoday = date.today().isoformat()
 isomonth = date.today().replace(day=1).isoformat()
 
-symbol_names = [symbol.name for symbol in Symbol]
 SymbolName = Enum('Sym', {s.name: s.name for s in Symbol})
 getSymbols = lambda syms: [Symbol.__members__[sym.name] for sym in syms]
 Strategy = Enum('Strategy', {s: s for s in strategies.names})
 
 @app.command()
-def info(symbol_names: List[SymbolName] = Option(symbol_names, '-sy')): 
+def info(symbol_names: List[SymbolName]):
     candle_info = CandleInfoManager()
-    for symbol_name in symbol_names:
+    for symbol_name in symbol_names or SymbolName:
         print(candle_info.repr(symbol_name))
 
 @app.command()
@@ -45,7 +44,7 @@ def seed(
 @app.command()
 def backtest(
     strategy_name: Strategy,
-    symbol_names: List[SymbolName] = Option(symbol_names, '-sy'),
+    symbol_names: List[SymbolName],
     start_date: datetime = Option(isomonth, '-sd'),
     end_date: datetime = Option(isoday, '-ed'),
     time_interval: int = Option(1, '-ti')
@@ -63,11 +62,26 @@ def backtest(
 
     # draw the history graph
     browser = CandleBrowser()
-    drawHistory(browser, history, trades, start_date, end_date)
+    drawTradeHistory(browser, history, trades, start_date, end_date)
     
     print('max value:', history.max())
     print('min value:', history.min())
     print('end value:', history[-1])
     print('number of trades:', len(trades))
+
+@app.command() 
+def trade(
+    strategy_name: Strategy,
+    symbol_names: List[SymbolName],
+    time_interval: int = Option(1, '-ti')
+):
+    # transform the arguments to the proper type
+    dt = time_interval * minute
+    symbols = getSymbols(symbol_names)
+    strategy = strategies.getStrategy(strategy_name.name, symbols)
+
+    # run strategy on the trade engine
+    engine = TradeEngine(strategy)
+    engine.trade(dt) 
 
 if __name__ == '__main__':  app()
