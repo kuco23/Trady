@@ -11,7 +11,7 @@ To configure the framework, fill in the `config.ini` file. Specifically the Bina
 Strategies are defined in `lib.strategies` as packages. Most strategies will be parametrized by the trading symbols. Thus every strategy has to be initialized by its wrapping function. The symbols that can be traded are defined in `Symbol` enum inside `lib.enums`.
 
 ### Trading
-To trade a strategy (that is defined in `lib.strategies`), one only has to run `python trady.py <strategy> <symbol_1> ... <symbol_n> -ti <time_interval>`. This means that the chosen strategy will trade the given symbols and be called every `<time_interval>` minutes.
+To trade a strategy (that is defined in `lib.strategies`), one only has to run `python trady.py trade <strategy> <symbol_1> ... <symbol_n> -ti <time_interval>`. This means that the chosen strategy will trade the given symbols and be called every `<time_interval>` minutes.
 
 ### Tests
 Repo implements two ways to test a given strategy.
