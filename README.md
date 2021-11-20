@@ -1,7 +1,5 @@
 # Trady
 
-
-## Basics
 This is a framework for developing trading algorithms on [Binance](https://www.binance.com/), using its api via [python-binance](https://python-binance.readthedocs.io/en/latest/) library.
 
 ## Strategies and Symbols
@@ -14,8 +12,8 @@ Currently there are four usages of the cli. Note that most of them require addit
 - **Trading:** You can trade a strategy (that is defined in `lib.strategies`) by running `python trady.py trade` command in cli.
 - **Backtesting:** For strategies that depend solely on the previous candle data for featured symbols, you can test them on historic data using `python trady.py backtest`. Make sure to have the necessary symbols' candles in the database during the backtesting timeframe (check seeding).
 - **Livetesting:** For strategies that also depend on some outside factors (eg. scraping the web for crypto news), you can test them using `python trade.py livetest`.
-- **Seeding:** To seed the database, use `python trady.py seed`. The data is collected via binance api, for which no api keys are required.
-- **Database Info:** To see which candles are in the database and during which timeframe, use `python trady.py info`.
+- **Seeding:** To seed the database, use `python trady.py seed`. The data is collected via binance api, which requires no api keys for candle fetching.
+- **Database Info:** To see for what symbols and during which timeframe you have candles in the database, use `python trady.py info`.
 
 ## Configuration
 
@@ -23,15 +21,15 @@ To configure the framework, fill in the `config.ini` file. Specifically, acquire
 
 ## Notes
 
-When backtesting a strategy make sure that it does not acquire earlier candles than those in the database (if a strategy's maximum lookback is eg. 4 days and the backtesting starts at eg. `-sd 2021 10 10`, you have to have candles in the database from `2021 10 6` on).
+When backtesting a strategy make sure that it does not acquire earlier candles than those in the database (if a strategy's maximum lookback is eg. 4 days and the backtesting starts at eg. `-sd 2021-10-10`, you have to have candles in the database from `2021-10-6` on).
 
 ## Examples
 
 #### Example `Trady` cli usage
 
-```bash
-python trady.py seed ADAUSDT -sd 2021 9 28 -ed 2021 10 10
-python trady.py backtest meanRevision ADAUSDT -sd 2021 10 1 -ed 2021 10 10
+```powershell
+python trady.py seed ADAUSDT -sd 2021-9-28 -ed 2021-10-10
+python trady.py backtest meanRevision ADAUSDT -sd 2021-10-1 -ed 2021-10-10
 python trady.py trade meanRevision ADAUSDT
 ```
 
