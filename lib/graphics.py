@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 
+from . import CandleBrowser
 from .enums import Trade
 
 
@@ -13,13 +14,15 @@ def _configAx(ax, title, xlab, ylab):
     ax.spines['bottom'].set_alpha(0.5)
     ax.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.5)
 
-def drawTradeHistory(data, history, trades, sd, se):
+def drawTradeHistory(history, trades, sd, ed):
     assert len(trades) > 0
-    
     symbol = trades[0].symbol
-    candles = data.candlesByDate(symbol, sd, se)
-    buys = ((r.time, r.price) for r in trades if r.trade == Trade.BUY)
-    sells = ((r.time, r.price) for r in trades if r.trade == Trade.SELL)
+
+    #buys = ((r.time, r.price) for r in trades if r.trade == Trade.BUY)
+    #sells = ((r.time, r.price) for r in trades if r.trade == Trade.SELL)
+
+    with CandleBrowser() as browser: 
+        candles = browser.candlesByDate(symbol, sd, ed)
     
     fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 8))
     fig.suptitle('trades / portfolio value')

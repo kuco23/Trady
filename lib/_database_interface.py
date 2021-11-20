@@ -15,12 +15,15 @@ from . import cfg
 from .enums import Symbol
 
 
+datapath = Path('data')
+datapath.mkdir(exist_ok=True)
 minute = timedelta(minutes=1)
 
 class CandleInfoManager: 
 
     def __init__(self):
-        self.path = Path(cfg.DATABASE_INFOPATH)
+        self.path = datapath / cfg.DATABASE_INFOJSON
+        self.path.touch()
         self._load()
         self._fillSymbolInfo()
 
@@ -39,8 +42,6 @@ class CandleInfoManager:
         else: self._info = dict()
 
     def _save(self):
-        if not self.path.is_file():
-            with open(self.path, 'a') as file: pass
         with open(self.path, 'w') as file:
             dump(self._info, file)
 
@@ -136,7 +137,6 @@ class CandleSeeder:
         # clear data if table is marked dirty
         # and set table dirty, meaning seeding started
         if not self.info.loadingCompleted(symbol):
-            print(self.info._info)
             conn.execute(table.delete())
             self.info.clearData(symbol)
         self.info.setLoading(symbol, True)
@@ -186,14 +186,18 @@ class CandleSeeder:
         self.info.dataAdded(symbol, sd, ed)
         self.info.setLoading(symbol, False)
 
-
 class CandleBrowser:
-
-    def __init__(self):
+    
+    def __enter__(self): 
         self.db = create_engine(cfg.DATABASE_SQLALCHEMY, echo=False)
         self.metadata = MetaData(bind=self.db)
         self.metadata.reflect(self.db)
         self.conn = self.db.connect()
+        return self
+    
+    def __exit__(self, type, value, traceback):
+        self.conn.close()
+        self.db.dispose()
 
     def _getTable(self, symbol):
         return self.metadata.tables['candles' + symbol.name]
@@ -206,8 +210,3 @@ class CandleBrowser:
         candles = self.conn.execute(sql_select)
         colnames = table.columns.keys()
         return DataFrame(dict(zip(colnames, zip(*candles))))
-    
-    def close(self):
-        self.conn.close()
-        self.db.dispose()
-        del self

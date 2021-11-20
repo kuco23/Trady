@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from typer import Typer, Option
 
 from lib import (
-    CandleSeeder, CandleBrowser, CandleInfoManager, 
+    CandleSeeder, CandleInfoManager, 
     BacktestEngine, TradeEngine, strategies
 )
 from lib.enums import Symbol
@@ -18,19 +18,25 @@ minute = timedelta(minutes=1)
 isoday = date.today().isoformat()
 isomonth = date.today().replace(day=1).isoformat()
 
-SymbolName = Enum('Sym', {s.name: s.name for s in Symbol})
-getSymbols = lambda syms: [Symbol.__members__[sym.name] for sym in syms]
-Strategy = Enum('Strategy', {s: s for s in strategies.names})
+StrategyChoice = Enum('StrategyChoice', 
+    {s: s for s in strategies.names}
+)
+SymbolChoice = Enum('Sym', 
+    {s.name: s.name for s in Symbol}
+)
+getSymbols = lambda syms: [
+    Symbol.__members__[sym.name] for sym in syms
+]
 
 @app.command()
-def info(symbol_names: List[SymbolName]):
+def info(symbol_names: List[SymbolChoice]):
     candle_info = CandleInfoManager()
-    for symbol_name in symbol_names or SymbolName:
+    for symbol_name in symbol_names or SymbolChoice:
         print(candle_info.repr(symbol_name))
 
 @app.command()
 def seed(
-    symbol_names: List[SymbolName],
+    symbol_names: List[SymbolChoice],
     start_date: datetime = Option(isomonth, '-sd'),
     end_date: datetime = Option(isoday, '-ed')
 ):
@@ -43,8 +49,8 @@ def seed(
 
 @app.command()
 def backtest(
-    strategy_name: Strategy,
-    symbol_names: List[SymbolName],
+    strategy_name: StrategyChoice,
+    symbol_names: List[SymbolChoice],
     start_date: datetime = Option(isomonth, '-sd'),
     end_date: datetime = Option(isoday, '-ed'),
     time_interval: int = Option(1, '-ti')
@@ -52,7 +58,9 @@ def backtest(
     # transform the arguments to the proper type
     dt = time_interval * minute
     symbols = getSymbols(symbol_names)
-    strategy = strategies.getStrategy(strategy_name.name, symbols)
+    strategy = strategies.getStrategy(
+        strategy_name.name, symbols
+    )
 
     # run strategy on the backtest engine
     engine = BacktestEngine(strategy)
@@ -61,9 +69,9 @@ def backtest(
     )
 
     # draw the history graph
-    browser = CandleBrowser()
-    drawTradeHistory(browser, history, trades, start_date, end_date)
+    drawTradeHistory(history, trades, start_date, end_date)
     
+    # print the relevant info
     print('max value:', history.max())
     print('min value:', history.min())
     print('end value:', history[-1])
@@ -71,14 +79,16 @@ def backtest(
 
 @app.command() 
 def trade(
-    strategy_name: Strategy,
-    symbol_names: List[SymbolName],
+    strategy_name: StrategyChoice,
+    symbol_names: List[SymbolChoice],
     time_interval: int = Option(1, '-ti')
 ):
     # transform the arguments to the proper type
     dt = time_interval * minute
     symbols = getSymbols(symbol_names)
-    strategy = strategies.getStrategy(strategy_name.name, symbols)
+    strategy = strategies.getStrategy(
+        strategy_name.name, symbols
+    )
 
     # run strategy on the trade engine
     engine = TradeEngine(strategy)

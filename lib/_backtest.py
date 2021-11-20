@@ -1,3 +1,4 @@
+from copy import deepcopy
 from numpy import zeros
 from tqdm import tqdm
 
@@ -12,7 +13,6 @@ from .models import AbstractData, TradeRecord, state_template
 fee = 0.001 # binance max fee
 q = 1 - fee
 
-# Data methods will always return pandas table (to comply with talib)
 class BacktestData(AbstractData, CandleBrowser):
     _bufflen = 10000 # length of the buffer candles
 
@@ -59,16 +59,14 @@ class BacktestEngine:
         self.strategy = strategy
     
     def backtest(self, sd, ed, ti):
-        data = BacktestData(sd, ed, ti)
-        state = state_template
+        state = deepcopy(state_template)
         state['assets']['USDT'] = 100
 
-        # trades is dynamic, shouldn't be too long anyway
-        iterations = (ed - sd) // ti
-        history, trades = zeros(iterations), []
+        it = (ed - sd) // ti # number of iterations
+        history, trades = zeros(it), []
 
         # run historic trade simulation
-        with tqdm(total=iterations) as pb:
+        with BacktestData(sd, ed, ti) as data, tqdm(total=it) as pb:
             
             while data.now < data.end:
                 self.strategy(data, state)
@@ -98,7 +96,5 @@ class BacktestEngine:
 
                 data.moveTime()
                 pb.update(1)
-
-        data.close()
         
         return history, trades
