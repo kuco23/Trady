@@ -1,5 +1,7 @@
+from copy import deepcopy
 from datetime import datetime
 from time import sleep
+from requests.exceptions import ConnectionError, ReadTimeout
 
 from binance.client import Client
 from binance.enums import *
@@ -8,8 +10,22 @@ from pandas import DataFrame
 from . import cfg
 from .enums import BinanceCandle, Trade
 from .exceptions import InvalidPosition, OrderFillTimeout
-from .models import AbstractData, TradeRecord
+from .models import AbstractData, TradeRecord, state_template
 
+
+fee = 0.001 # binance max fee
+q = 1 - fee
+
+def forceResponse(fun):
+    def wrapper(*args):
+        while True:
+            try: return fun(*args)
+            except ConnectionError as e: 
+                print('handled exception', e)
+            except ReadTimeout as e:
+                print('handled exception', e)
+            sleep(0.5)
+    return wrapper
 
 class LiveData(AbstractData):
     _candleattr = [e.value[0] for e in BinanceCandle]
@@ -18,6 +34,7 @@ class LiveData(AbstractData):
     def __init__(self, client):
         self.client = client
 
+    @forceResponse
     def candles(self, symbol, ncandles):
         resp = self.client.get_klines(
             symbol=symbol.name,
@@ -25,14 +42,11 @@ class LiveData(AbstractData):
             limit=ncandles
         )
         candles = [
-            [tp(c) for tp, c in zip(self._candletype, row)]
+            [tp(c) for tp, c in zip(self._candletype, row)] 
             for row in resp
         ]
         return DataFrame(dict(zip(self._candleattr, zip(*candles))))
 
-    def price(self, symbol):
-        return self.candles(symbol,1).close.iloc[-1]
-        
 
 class TradeEngine:
 
@@ -43,6 +57,14 @@ class TradeEngine:
             cfg.BINANCE_API_SECRET
         )
     
+    @forceResponse
+    def _lastprice(self, symbol):
+        last_trade = self.client.get_recent_trades(
+            symbol=symbol.name, limit=1
+        )[0]
+        return float(last_trade['price'])
+    
+    @forceResponse
     def assets(self):
         account_data = self.client.get_account()
         return {
@@ -50,9 +72,25 @@ class TradeEngine:
             for balance in account_data['balances']
         }
     
+    @forceResponse
+    def orderTradeAction(self, action):
+        action.price = self._lastprice(action.symbol)
+        match action.trade:
+            case Trade.BUY: 
+                return self.client.order_market_buy(
+                    symbol=action.symbol.name,
+                    quantity=action.iquantity * q
+                )
+            case Trade.SELL:
+                return self.client.order_market_sell(
+                    symbol=action.symbol.name,
+                    quantity=action.iquantity * q
+                )
+    
     def trade(self, ti):
         data = LiveData(self.client)
-        state = {'assets': self.assets(), 'actions': []}
+        state = deepcopy(state_template)
+        state['assets'] = self.assets()
 
         trades, history = [], []
         while True:
@@ -60,53 +98,35 @@ class TradeEngine:
             slept = 0
             while state['actions']:
                 action = state['actions'].pop()
-                assets = state['assets']
-                base, quote = action.symbol.value
-                price = data.price(action.symbol)
+                action.setQuantityFromRatio(state['assets'])
 
-                if action.quantity is not None:
-                    quantity = action.quantity
-                elif action.trade == Trade.BUY:
-                    quantity = assets[quote] * action.ratio
-                elif action.trade == Trade.SELL:
-                    quantity = assets[base] * action.ratio
+                order = self.orderTradeAction(action)
+                price = order['fills'][0]['price']
+                quantity = order['cummulativeQuoteQty']
 
-                if action.trade == Trade.BUY:
-                    resp = self.client.order_market_buy(
-                        symbol=action.symbol,
-                        quantity=quantity
-                    )
-                elif action.trade == Trade.SELL:
-                    resp = self.client.order_market_sell(
-                        symbol=action.symbol,
-                        quantity=quantity
-                    )
-                else: raise InvalidPosition(action.trade)
-                
-                order_filled = resp['status'] == 'FILLED'
-                order_id = resp['id']
-
-                trades.append(TradeRecord(
-                    datetime.now(), action.trade,
-                    action.symbol, quantity, price
-                ))
-
-                print(trades[-1])
-                
-                while not order_filled:
+                # wait until the order is filled
+                while order['status'] != 'FILLED':
+                    if slept + 0.5 > ti.seconds: 
+                        raise OrderFillTimeout()
                     sleep(0.5)
                     slept += 0.5
-                    if slept > ti.seconds: raise OrderFillTimeout()
                     order = self.client.get_order(
                         symbol=action.symbol,
-                        orderId=order_id
+                        orderId=order['orderId']
                     )
-                    order_filled = order['status'] == 'FILLED'
 
+                # TODO
+                # calculate from the order to avoid the
+                # overhead and connection issues
                 state['assets'] = self.assets()
 
-            history.append(data.portfolioValue(state['assets']))
+                trades.append(TradeRecord(
+                    datetime.now(), action.trade, 
+                    action.symbol, quantity, price
+                ))
+                print(trades[-1])
 
+            history.append(data.portfolioValue(state['assets']))
             print('portfolio value:', history[-1])
 
             sleep(ti.seconds - slept)

@@ -49,9 +49,6 @@ class BacktestData(AbstractData, CandleBrowser):
         if len(df) != ncandles: raise DatabaseCandleError(symbol)
         return df
 
-    def price(self, symbol):
-        return float(self.candles(symbol, 1).close)
-
     def moveTime(self):
         self.now += self.dt
         for sym in Symbol: self._bfi[sym] += self._dm
@@ -76,32 +73,27 @@ class BacktestEngine:
             while data.now < data.end:
                 self.strategy(data, state)
                 while state['actions']:
-                    action = state['actions'].pop()
                     assets = state['assets']
+                    action = state['actions'].pop()
+                    action.setQuantityFromRatio(assets)
+
                     base, quote = action.symbol.value
                     price = data.price(action.symbol)
-                    
-                    if action.quantity is not None:
-                        quantity = action.quantity
-                    elif action.trade == Trade.BUY:
-                        quantity = assets[quote] * action.ratio
-                    elif action.trade == Trade.SELL:
-                        quantity = assets[base] * action.ratio
-                    
+
                     if action.trade == Trade.BUY:
-                        assets[base] += quantity / price * q
-                        assets[quote] -= quantity
+                        assets[base] += action.quantity / price * q
+                        assets[quote] -= action.quantity
                     elif action.trade == Trade.SELL:
-                        assets[quote] += quantity * price * q
-                        assets[base] -= quantity
+                        assets[quote] += action.quantity * price * q
+                        assets[base] -= action.quantity
                     else: raise InvalidPosition(action.trade)
                     
                     trades.append(TradeRecord(
                         data.now, action.trade, action.symbol,
-                        quantity, price
+                        action.quantity, price
                     ))
 
-                # should be calculated externaly from trades
+                # could be calculated externaly from trades
                 history[pb.n] = data.portfolioValue(state['assets'])
 
                 data.moveTime()

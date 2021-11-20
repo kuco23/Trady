@@ -28,6 +28,7 @@ class Symbol(Enum):
     QNTUSDT = ('QNT', 'USDT')
     CLVUSDT = ('CLV', 'USDT')
     AXSUSDT = ('AXS', 'USDT')
+    MANAUSDT = ('MANA', 'USDT')
 
 class BinanceCandle(Enum):
     OPENTIME = ('opentime', int)
