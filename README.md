@@ -7,7 +7,7 @@ Strategies are defined in `lib.strategies` as packages. Most strategies will be 
 
 ## Using the Trady CLI
 
-Currently there are four usages of the cli. Note that most of them require additional arguments, such as strategy name, trading symbols, trading frequency, testing timeframe, ... For more info, call `--help` or check the examples section at the end.
+Currently there are five usages of the cli. Note that most of them require additional arguments, such as strategy name, trading symbols, trading frequency, testing timeframe, ... For more info, call `--help` or check the examples section at the end.
 
 - **Trading:** You can trade a strategy (that is defined in `lib.strategies`) by running `python trady.py trade` command in cli.
 - **Backtesting:** For strategies that depend solely on the previous candle data for featured symbols, you can test them on historic data using `python trady.py backtest`. Make sure to have the necessary symbols' candles in the database during the backtesting timeframe (check seeding).

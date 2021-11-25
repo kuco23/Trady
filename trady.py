@@ -18,20 +18,22 @@ minute = timedelta(minutes=1)
 isoday = date.today().isoformat()
 isomonth = date.today().replace(day=1).isoformat()
 
-StrategyChoice = Enum('StrategyChoice', 
-    {s: s for s in strategies.names}
-)
-SymbolChoice = Enum('Sym', 
-    {s.name: s.name for s in Symbol}
-)
+StrategyChoice = Enum('StrategyChoice', {
+    s: s for s in strategies.names
+})
+SymbolChoice = Enum('SymbolChoice', {
+    **{s.name: s.name for s in Symbol}, 
+    **{'ALL': 'ALL', 'LOAD': 'LOAD'}
+})
 getSymbols = lambda syms: [
     Symbol.__members__[sym.name] for sym in syms
-]
+] if syms[0].name != 'ALL' else list(Symbol)
 
 @app.command()
 def info(symbol_names: List[SymbolChoice]):
+    symbols = getSymbols(symbol_names)
     candle_info = CandleInfoManager()
-    for symbol_name in symbol_names or SymbolChoice:
+    for symbol_name in symbols:
         print(candle_info.repr(symbol_name))
 
 @app.command()
@@ -41,7 +43,6 @@ def seed(
     end_date: datetime = Option(isoday, '-ed')
 ):
     symbols = getSymbols(symbol_names)
-
     # seed for each symbol
     seeder = CandleSeeder()
     for symbol in symbols:

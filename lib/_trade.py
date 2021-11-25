@@ -4,17 +4,20 @@ from time import sleep
 from requests.exceptions import ConnectionError, ReadTimeout
 
 from binance.client import Client
-from binance.enums import *
+from binance.enums import KLINE_INTERVAL_1MINUTE
 from pandas import DataFrame
 
 from . import cfg
 from .enums import BinanceCandle, Trade
-from .exceptions import InvalidPosition, OrderFillTimeout
+from .exceptions import OrderFillTimeout
 from .models import AbstractData, TradeRecord, state_template
 
 
 fee = 0.001 # binance max fee
 q = 1 - fee
+
+connection_retry_period = 0.5
+order_check_period = 0.5
 
 def forceResponse(fun):
     def wrapper(*args):
@@ -24,7 +27,7 @@ def forceResponse(fun):
                 print('handled exception', e)
             except ReadTimeout as e:
                 print('handled exception', e)
-            sleep(0.5)
+            sleep(connection_retry_period)
     return wrapper
 
 class LiveData(AbstractData):
@@ -63,17 +66,9 @@ class TradeEngine:
             symbol=symbol.name, limit=1
         )[0]
         return float(last_trade['price'])
-    
+
     @forceResponse
-    def assets(self):
-        account_data = self.client.get_account()
-        return {
-            balance['asset']: float(balance['free'])
-            for balance in account_data['balances']
-        }
-    
-    @forceResponse
-    def orderTradeAction(self, action):
+    def _orderTradeAction(self, action):
         action.price = self._lastprice(action.symbol)
         match action.trade:
             case Trade.BUY: 
@@ -86,6 +81,14 @@ class TradeEngine:
                     symbol=action.symbol.name,
                     quantity=action.iquantity * q
                 )
+    
+    @forceResponse
+    def assets(self):
+        account_data = self.client.get_account()
+        return {
+            balance['asset']: float(balance['free'])
+            for balance in account_data['balances']
+        }
     
     def trade(self, ti):
         data = LiveData(self.client)
@@ -100,16 +103,16 @@ class TradeEngine:
                 action = state['actions'].pop()
                 action.setQuantityFromRatio(state['assets'])
 
-                order = self.orderTradeAction(action)
+                order = self._orderTradeAction(action)
                 price = order['fills'][0]['price']
                 quantity = order['cummulativeQuoteQty']
 
                 # wait until the order is filled
                 while order['status'] != 'FILLED':
-                    if slept + 0.5 > ti.seconds: 
+                    if slept + order_check_period > ti.seconds:
                         raise OrderFillTimeout()
-                    sleep(0.5)
-                    slept += 0.5
+                    sleep(order_check_period)
+                    slept += order_check_period
                     order = self.client.get_order(
                         symbol=action.symbol,
                         orderId=order['orderId']

@@ -18,5 +18,5 @@ names = [
 ]
 
 for name in names:
-    wrappername = _camelize(name) + 'Wrapper'
-    exec(f'from .{name}.{name} import {wrappername}')
+    wrapper_name = _camelize(name) + 'Wrapper'
+    exec(f'from .{name}.{name} import {wrapper_name}')

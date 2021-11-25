@@ -10,7 +10,7 @@ class InvalidPosition(Exception):
 class DatabaseCandleError(Exception):
     def __init__(self, symbol):
         super().__init__(
-            f"Error in the database from {symbol.name} table."
+            f"Error in the database from {symbol.name} table. "
             "This usually happens when a strategy requires "
             "candles that are not in the database."
         )

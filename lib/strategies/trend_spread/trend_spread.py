@@ -4,11 +4,17 @@ from ...enums import Trade
 from ...models import TradeAction
 
 def trendSpreadWrapper(symbols):
-    treshold = 1
+    treshold = round(0.75 * len(symbols))
 
     def trendSpread(data, state):
+        assets = state['assets']
+        actions = state['actions']
+
         bulls, bears = [], []
         for symbol in symbols:
+            base, quote = symbol.value
+            if assets[base] == 0 and assets[quote] == 0: 
+                continue
 
             candles1d = data.candles(symbol, 60 * 24)
             candles1h = data.candles(symbol, 60)
@@ -24,15 +30,16 @@ def trendSpreadWrapper(symbols):
 
         for symbol in bears:
             base, quote = symbol.value
-            if state['assets'][base] == 0: continue
-            state['actions'].append(TradeAction(
+            if assets[base] == 0: continue
+            actions.append(TradeAction(
                 Trade.SELL, symbol, ratio=1
             ))                  
 
         if len(bulls) >= treshold:
             for symbol in bulls:
                 base, quote = symbol.value
-                state['actions'].append(TradeAction(
+                if assets[quote] == 0: continue
+                actions.append(TradeAction(
                     Trade.BUY, symbol, ratio=1/len(bulls)
                 ))
     

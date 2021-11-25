@@ -46,8 +46,6 @@ class CandleInfoManager:
             dump(self._info, file)
 
     def _loadIntervals(self, symbol):
-        if symbol.name not in self._info.keys():
-            self._addSymbolTemplate(symbol)
         intervals = I.empty()
         syminfo = self._info[symbol.name]
         for sd, ed in zip(syminfo['sd'], syminfo['ed']):
@@ -135,21 +133,21 @@ class CandleSeeder:
         table.create(self.engine, checkfirst=True)
 
         # clear data if table is marked dirty
-        # and set table dirty, meaning seeding started
         if not self.info.loadingCompleted(symbol):
             conn.execute(table.delete())
             self.info.clearData(symbol)
-        self.info.setLoading(symbol, True)
 
-        # define time frames in [sd, ed], where data is not
-        # yet in the database
+        # time frames in [sd, ed], where data is not in the database
         tframes = self.info.missingData(symbol, sd, ed)
         if tframes.is_empty(): return
+
+        # set the database state to dirty to indicate loading unfinished
+        self.info.setLoading(symbol, True)
 
         # seed the database with data from each candlegen
         candlegen = self._candleGenerator(symbol)
         iterations = sum((t.upper - t.lower) // minute for t in tframes)
-        with tqdm(total=iterations) as pb:
+        with tqdm(total=iterations, desc=symbol.name) as pb:
             
             for sd, ed in ((t.lower, t.upper) for t in tframes):
                 top, tcp = None, None
