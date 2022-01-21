@@ -17,10 +17,9 @@ def trendSpreadWrapper(symbols):
                 continue
 
             candles1d = data.candles(symbol, 60 * 24)
-            candles1h = data.candles(symbol, 60)
 
-            ema1d = EMA(candles1d.close.iloc[::30], 40).iloc[-1]
-            ema1h = EMA(candles1h.close, 40).iloc[-1]
+            ema1d = EMA(candles1d.close.iloc[::30], 40).iloc[0]
+            ema1h = EMA(candles1d.close, 40).iloc[-1]
             rsi = RSI(candles1d.close).iloc[-1]
 
             if ema1h > ema1d and rsi < 25:
