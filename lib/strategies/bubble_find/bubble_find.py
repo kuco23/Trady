@@ -5,7 +5,7 @@ from ...models import TradeAction
 
 def bubbleFindWrapper(symbols):
 
-    def bubbleFind(self, data, state):
+    def bubbleFind(data, state):
         assets, actions = state['assets'], state['actions']
         
         maxval, maxsym = 0, None

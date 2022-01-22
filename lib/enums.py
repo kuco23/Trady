@@ -1,4 +1,5 @@
-from enum import Enum, IntEnum
+from enum import IntEnum
+from aenum import Enum, extend_enum
 
 class Trade(IntEnum):
     SELL = 0
@@ -29,6 +30,10 @@ class Symbol(Enum):
     CLVUSDT = ('CLV', 'USDT')
     AXSUSDT = ('AXS', 'USDT')
     MANAUSDT = ('MANA', 'USDT')
+    LINAUSDT = ('LINA', 'USDT')
+
+    def new(name, base, quote):
+        return extend_enum(Symbol, name, (base, quote))
 
 class BinanceCandle(Enum):
     OPENTIME = ('opentime', int)
