@@ -18,19 +18,18 @@ def binanceListingsWrapper(*args):
         
         current_symbols = data.tradingSymbols()
         diff = binance_symbols - set(current_symbols)
-        n = len(diff)
+        usdts = [d for d in diff if d.endswith('USDT')]
 
         actions = state['actions']
-        for symbol_name in diff: 
-            if symbol_name in Symbol:
-                symbol = Symbol.__getitem__(symbol_name)
-                base, quote = symbol.value
-            else:
-                base, quote = data.symbolBaseQuote(symbol_name)
-                symbol = Symbol.new(symbol_name, base, quote)
-            actions.append(TradeAction(Trade.BUY, symbol, ratio=1/n))
-        
-        print(n)
+        for sname in usdts: 
+            symbol = (
+                Symbol.__getitem__(sname) if sname in Symbol 
+                else Symbol.new(sname, sname[:-4], 'USDT')
+            )
+            actions.append(TradeAction(
+                Trade.BUY, symbol, ratio=1/len(usdts)
+            ))
+            print(sname)
     
     return binanceListings
 

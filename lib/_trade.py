@@ -54,11 +54,6 @@ class LiveData(AbstractData):
     def tradingSymbols(self):
         fees = self.client.get_trade_fee()
         return [fee['symbol'] for fee in fees]
-    
-    @forceResponse
-    def symbolBaseQuote(self, symbol_name):
-        info = self.client.get_symbol_info(symbol_name)
-        return info['baseAsset'], info['quoteAsset']
 
 
 class TradeEngine:
